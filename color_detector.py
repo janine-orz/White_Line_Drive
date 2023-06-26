@@ -80,8 +80,8 @@ def LinePos(img, height, width, i):
     length = 0
     Line = ColDet(img, height, width, i)
     #print(i)
-    #for i in range(len(Line)):
-        #print(i, ':', Line[i])
+    for i in range(len(Line)):
+        print(i, ':', Line[i])
 
     #sucess to finde the white color in one line
     length = len(Line) - 2
@@ -118,16 +118,19 @@ def DelRef(Line, INDEX):
         idx = INDEX[i+1]
         #print('idx = ', idx)
         #print('i = ', i, '; diff = ', diff)
-
-        while (diff >= 5 and diff <= 13):
+        while(diff >= 8 and diff <= 33):
+            #print('in WHILE')
+            #print('len(INDEX) = ', len(INDEX))
             num = Line[idx]
-            if(len(INDEX) < 3) or (num[1] <= 311):
-                Line_n = []
-                for j in range(INDEX[i], INDEX[i+1]):
-                    #print('INDEX[i] = ', INDEX[i])
-                    #print('j = ', j+1, ';\tLine[j]', Line[j+1])
-                    Line_n.append(Line[j+1])
-            i+=1
+            for k in range(len(Line)-1, -1, -1):
+                print("k = ", k)
+
+                if(num[1] < 320-k*5):
+                    Line_n = []
+                    for j in range(INDEX[i], INDEX[i+1]):
+                        print('INDEX[i] = ', INDEX[i])
+                        print('j = ', j+1, ';\tLine[j]', Line[j+1])
+                        Line_n.append(Line[j+1])
             break
     return Line_n
 
@@ -175,13 +178,24 @@ def MidCal(a, b):
     return num2
 
 
+def aLine(Line):
+    for i in range(len(Line) - 2):
+        Pnt1 = Line[i]
+        Pnt2 = Line[i+1]
+        if Pnt1[0] <= Pnt2[0]:
+            aLine = 0
+            return aLine
+
+
 def LineorCurve(Line):
     LoC = 0
+    aLine = 1
     if(Line != []):
         Pnt1 = Line[0]
         Pnt2 = Line[len(Line) - 1]
         slope = (Pnt2[1] - Pnt1[1])/(Pnt2[0] - Pnt1[0])
         const = Pnt1[1] - (Pnt1[0] * slope)
+        aLine = aLine(Line)
 
         num1 = len(Line)/4
         num1 = int(num1)
@@ -207,12 +221,12 @@ def LineorCurve(Line):
         return LoC
 
 
-def LoCCal(Pnt3, slope, const):
+def LoCCal(Pnt3, slope, const, aLine):
     y1 = Pnt3[1]
     Pnt4 = Pnt3
     y2 = (slope * Pnt4[0]) + const
     diff = y1 - y2
-    if(abs(diff) < 1.5):
+    if(abs(diff) < 1.5 and aLine == 0):
             LoC = 0
     else:
         LoC = 1
