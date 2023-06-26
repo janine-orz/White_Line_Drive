@@ -37,6 +37,7 @@ def ColRec(img, i, j):
     b_val = pixel_center[0]
     g_val = pixel_center[1]
     r_val = pixel_center[2]
+
     if b_val > 170 and g_val > 170 and r_val > 170:
         color = "White"
     elif b_val < 100 and g_val < 100 and r_val < 100:
@@ -60,12 +61,7 @@ def ColRec(img, i, j):
         else:
             color = "Red"
     return color
-'''
-i = 229
-j = 1
-print(ColRec(img, i, j))
-cv2.circle(img, (j, i), 3, (255, 0, 0), 3)
-'''
+
 
 def ColDet(img, height, width, i):
     Col = []
@@ -78,16 +74,14 @@ def ColDet(img, height, width, i):
             Col.append(temp)
     return Col
 
-# print(ColDet(img, height, width))
-
 
 def LinePos(img, height, width, i):
     Line = []
     length = 0
     Line = ColDet(img, height, width, i)
-    print(i)
-    for i in range(len(Line)):
-        print(i, ':', Line[i])
+    #print(i)
+    #for i in range(len(Line)):
+        #print(i, ':', Line[i])
 
     #sucess to finde the white color in one line
     length = len(Line) - 2
@@ -118,24 +112,23 @@ def FindRef(Line, length):
 
 def DelRef(Line, INDEX):
     Line_n = []
-    print('INDEX = ', INDEX)
+    #print('INDEX = ', INDEX)
     for i in range(0, len(INDEX)-1):
         diff = abs(INDEX[i+1] - INDEX[i])
         idx = INDEX[i+1]
-        print('idx = ', idx)
-        print('i = ', i, '; diff = ', diff)
+        #print('idx = ', idx)
+        #print('i = ', i, '; diff = ', diff)
 
         while (diff >= 5 and diff <= 13):
             num = Line[idx]
-            if(len(INDEX) < 3) or (num[1] < 310):
+            if(len(INDEX) < 3) or (num[1] <= 311):
                 Line_n = []
                 for j in range(INDEX[i], INDEX[i+1]):
-                    print('INDEX[i] = ', INDEX[i])
-                    print('j = ', j+1, ';\tLine[j]', Line[j+1])
+                    #print('INDEX[i] = ', INDEX[i])
+                    #print('j = ', j+1, ';\tLine[j]', Line[j+1])
                     Line_n.append(Line[j+1])
             i+=1
             break
-
     return Line_n
 
 
@@ -154,68 +147,24 @@ def bubblesort(length, idx, Line):
             return idx
 
 
-'''
-def LinePos(img, height, width, i):
-    Line = []
-    Line = ColDet(img, height, width, i)
-    print(Line)
-    #sucess to finde the white color in one line
-    length = len(Line)
-    if Line != []:
-        Line_max = Line[length - 1]
-        cy_max = Line_max[1]
-        FindMax(Line, length, cy_max)
-        print('cy_max = ', cy_max)
-        ##sucess to finde the right white point
-        cy_min = FindMin(Line, length)
-        print('cy_min = ', cy_min)
-        #sucess to finde the left white point
-        return cy_max, cy_min
-
-
-def FindMin(Line, length):
-    minimum = 0
-    Line_max = Line[length - 1]
-    maximum = Line_max[1]
-    Line_min = Line[0]
-    minimum = Line_min[1]
-    for k in range(length-1):
-        Line_temp = Line[k]
-        tempmin = Line_temp[1]
-        return minimum
-        while abs(tempmin - maximum) <= 10:
-            minimum = tempmin
-            #print(minimum)
-            Line_min = Line_temp
-            return minimum
-
-
-def FindMax(Line, length, maximum):
-    maximum = 0
-    for k in range(length-1):
-        Line_temp = Line[k+1]
-        if maximum > Line_temp[1]:
-            maximum = maximum
-        elif maximum < Line_temp[1]:
-            maximum = Line_temp[1]
-    return maximum
-'''
-
-
 def LineForm(img, height, width, i_min, i_max):
     L = []
     for i in range (i_min, i_max):
         # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
         Line_temp = LinePos(img, height, width, i)
-        l = len(Line_temp)
-        a = Line_temp[0]
-        num1 = a[1]
-        b = Line_temp[l-1]
-        num2 = b[1]
-        if(num1 != None)and(num2 != None):
-            temp = [int(MidCal(num1, num2)), i]
-            # print('[', MidCal(a, b), ',', i, ']')
-            L.append(temp)
+        if(Line_temp == None):
+            L = []
+            return L
+        elif(Line_temp != None):
+            l = len(Line_temp)
+            a = Line_temp[0]
+            num1 = a[1]
+            b = Line_temp[l-1]
+            num2 = b[1]
+            if(num1 != None)and(num2 != None):
+                temp = [int(MidCal(num1, num2)), i]
+                # print('[', MidCal(a, b), ',', i, ']')
+                L.append(temp)
     return L
 
 
@@ -228,37 +177,80 @@ def MidCal(a, b):
 
 def LineorCurve(Line):
     LoC = 0
-    Pnt1 = Line[0]
-    print('Pnt1 = ', Pnt1)
-    Pnt2 = Line[len(Line) - 1]
-    print('Pnt2 = ', Pnt2)
-    num = len(Line) - 15
-    num = int(num)
-    Pnt3 = Line[num]
-    print('Pnt3 = ', Pnt3[1])
+    if(Line != []):
+        Pnt1 = Line[0]
+        Pnt2 = Line[len(Line) - 1]
+        slope = (Pnt2[1] - Pnt1[1])/(Pnt2[0] - Pnt1[0])
+        const = Pnt1[1] - (Pnt1[0] * slope)
+
+        num1 = len(Line)/4
+        num1 = int(num1)
+        Pnt3 = Line[num1]
+        LoC = LoCCal(Pnt3, slope, const)
+        '''
+        num2 = len(Line)/2
+        num2 = int(num2)
+        Pnt3 = Line[num2]
+        LoC2 = LoCCal(Pnt3, slope, const)
+
+        num3 = (len(Line)/4)*3
+        num3 = int(num3)
+        Pnt3 = Line[num3]
+        LoC3 = LoCCal(Pnt3, slope, const)
+
+        sum = LoC1 + LoC2 + LoC3
+        LoC = sum/3
+        '''
+        return LoC
+    else:
+        LoC = 2
+        return LoC
+
+
+def LoCCal(Pnt3, slope, const):
     y1 = Pnt3[1]
     Pnt4 = Pnt3
-    slope = (Pnt2[1] - Pnt1[1])/(Pnt2[0] - Pnt1[0])
-    print(slope)
-    const = Pnt1[1] - (Pnt1[0] * slope)
     y2 = (slope * Pnt4[0]) + const
-    print('Pnt4 = ', y2)
     diff = y1 - y2
-    print('Diff = ', diff)
     if(abs(diff) < 1.5):
-        LoC = 0
+            LoC = 0
     else:
         LoC = 1
     return LoC
 
 
-
-def LineSlope(Line):
+def LineSlope(Line, LoC):
     slope = 0.0
-    Pnt1 = Line[0]
-    Pnt2 = Line[len(Line) - 1]
-    slope = GetAngl(Pnt1, Pnt2)
-    if slope > 0.8015:
+    idx = 0
+    if(LoC == 0):
+        idx1 = (len(Line))/4
+        idx1 = int(idx1)
+        slope1 = CalSlope(Line, idx1)
+
+        idx2 = (len(Line))/2
+        idx2 = int(idx2)
+        slope2 = CalSlope(Line, idx2)
+
+        idx3 = (len(Line))/4
+        idx3 = 3 * idx3
+        idx3 = int(idx3)
+        slope3 = CalSlope(Line, idx3)
+
+        print('slope1 = ', slope1)
+        print('slope2 = ', slope2)
+        print('slope3 = ', slope3)
+
+        slope = (slope1+slope2+slope3) / 3
+    elif(LoC == 1):
+        idx = (len(Line))/4
+        idx = 3 * idx
+        idx = int(idx)
+        slope = CalSlope(Line, idx)
+        print(slope)
+    elif(LoC == 2):
+        return LoC
+
+    if slope > 0.85:
     # it should be 0.8015
     # the PERSPECTIVE angle 0.5
     #           plus
@@ -266,12 +258,22 @@ def LineSlope(Line):
     # HOWEVER
     # we still need to concider about the extra slope
     # caused by the distance of the camera 0.2
-        slope = slope - 0.8015
-    elif (slope <= 0.8015) and (slope > 0):
+        slope = slope - 0.85
+    elif (slope <= 0.85) and (slope > 0):
         slope = 0.0
-    elif (slope < -0.8015):
-        slope = slope + 0.8015
+    elif (slope < -0.85):
+        slope = slope + 0.85
     return slope
+
+
+def CalSlope(Line, idx):
+    l = len(Line) - 1
+    Pnt1 = Line[l]
+    Pnt2 = Line[idx]
+    print('we will calculate the tangent line with Point', Pnt1, 'and Point', Pnt2)
+    slope = GetAngl(Pnt1, Pnt2)
+    return slope
+
 
 def GetAngl(Pnt1, Pnt2):
     angle = 0.0
