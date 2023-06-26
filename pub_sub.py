@@ -30,6 +30,8 @@ class FollowLine(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
         self.img = 0
+        self.L = []
+        self.slope = 0
 
 
     def ColRec(self, img, i, j):
@@ -69,7 +71,7 @@ class FollowLine(Node):
 
 
     def ColDet(self, img, height, width, i):
-        Col = []
+        Col = [] #initialize the color array
         # i = height - 50
         for j in range(width):
             color = self.ColRec(img, i, j)
@@ -81,6 +83,7 @@ class FollowLine(Node):
 
 
     def LinePos(self, img, height, width, i):
+        Line = [] #initialize the Line
         Line = self.ColDet(img, height, width, i)
         #print(Line)
         #sucess to finde the white color in one line
@@ -128,34 +131,48 @@ class FollowLine(Node):
             # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
             a = self.LinePos(img, height, width, i)[0]
             b = self.LinePos(img, height, width, i)[1]
-            temp = [int(self.MidCal(a, b)), i]
-            # print('[', MidCal(a, b), ',', i, ']')
-            L.append(temp)
+
+            if(a != None)and(b != None):
+                temp = [int(self.MidCal(a, b)), i]
+                # print('[', MidCal(a, b), ',', i, ']')
+                L.append(temp)
         return L
 
 
     def MidCal(self, a, b):
-        num1 = (a - b)/2
+        num1 = (a - b) / 2.0
         num2 = b + int(num1)
         num2 = int(num2)
         return num2
 
 
     def LineSlope(self, Line):
+        slope = 0 #initialize the slope
         Pnt1 = Line[0]
         Pnt2 = Line[len(Line) - 1]
         slope = self.GetAngl(Pnt1, Pnt2)
         print('slope = ', slope)
-        if slope > 0.75:
-            slope = slope - 0.75
-        elif slope <= 0.75:
+        if slope > 1.0015:
+        # it should be 0.8015
+        # the PERSPECTIVE angle 0.5
+        #           plus
+        # DIFFERENCE between pi and max radians of turtlebot Burger 0.3015
+        # HOWEVER
+        # we still need to concider about the extra slope
+        # caused by the distance of the camera 0.2
+            slope = slope - 1.0015
+        elif (slope <= 1.0015) and (slope > 0):
             slope = 0.0
+        elif (slope < -1.0015):
+            slope = slope + 1.0015
         return slope
 
     def GetAngl(self, Pnt1, Pnt2):
+        angle = 0.0
         opp = Pnt2[0] - Pnt1[0]
         adj = Pnt2[1] - Pnt1[1]
         angle = np.arctan(opp / adj)
+
         '''
         angle = np.arctan(opp / adj)
         print(angle)
@@ -164,7 +181,6 @@ class FollowLine(Node):
         for i in range(len(Ang)):
             add += abs(Ang[i])
         angle = add / (len(Ang))'''
-
         return angle
 
 
@@ -178,10 +194,11 @@ class FollowLine(Node):
         i_bot = height - 5
         i_mid = height - 30
         Line = self.LineForm(self.img, height, width, i_mid, i_bot)
-        print(self.LineSlope(Line))
+        self.slope = self.LineSlope(Line)
         #publish the cv image back to publisher
 
 
+        ''''''
         #to test if the Project will find the correct line
         for k in range(len(Line)):
             temp1 = Line[k]
@@ -193,27 +210,33 @@ class FollowLine(Node):
         cv2.imshow("IMG", img_cv)
         #to show the cv image
         cv2.waitKey(1)
+        ''''''
 
 
     def timer_callback(self):
-        '''
-        if(self.direction >= 1.1):
+        ''''''
+        if(self.slope == 0):
         #call the class variable
         #since the publisher create the msg itself
         #you are not allow to use the msg in publisher
         #[ self.i < 20): ]
             msg = Twist()
-            msg.linear.x = 0.05
+            msg.linear.x = 0.03
             msg.angular.z = 0.00
             self.publisher_.publish(msg)
-            print("driving")
+            print("Driving!")
+            #msg = Twist()
+            #msg.linear.x = 0.00
+            #msg.angular.z = 0.00
+            #self.publisher_.publish(msg)
+            #print("Stop!")
         else:
             msg = Twist()
-            msg.linear.x = 0.00
-            msg.angular.z = 0.00
+            msg.linear.x = 0.03
+            msg.angular.z = self.slope
             self.publisher_.publish(msg)
-            print("STOP!")
-        '''
+            print("Turning!")
+        ''''''
         self.get_logger().info('Publishing: "%i"' % self.i)
         self.i += 1
 
