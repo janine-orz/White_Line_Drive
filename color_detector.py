@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from sensor_msgs.msg import Image
 
+#write a LoC = 3 WHEN the robot is on the right way but need to correct a little bit
+
 def imgmsg_to_cv2(img_msg):
     if img_msg.encoding != "bgr8":
         rospy.logerr("This Coral detect node has been hardcoded to the 'bgr8' encoding. Come change the code if you are actually trying to implement a new camera")
@@ -33,6 +35,7 @@ def cv2_to_imgsmg(cv_image):
 
 def ColRec(img, i, j):
     color = "Undefined"
+    pixel_center = []
     pixel_center = img[i, j]
     b_val = pixel_center[0]
     g_val = pixel_center[1]
@@ -65,7 +68,6 @@ def ColRec(img, i, j):
 
 def ColDet(img, height, width, i):
     Col = []
-    # i = height - 50
     for j in range(width):
         color = ColRec(img, i, j)
         if color == "White":
@@ -75,25 +77,27 @@ def ColDet(img, height, width, i):
     return Col
 
 
-def LinePos(img, height, width, i):
+def LinePos(img, height, width, i, rr):
     Line = []
     length = 0
     Line = ColDet(img, height, width, i)
     #print(i)
-    for i in range(len(Line)):
-        print(i, ':', Line[i])
+    # for i in range(len(Line)):
+    #     print(i, ':', Line[i])
 
     #sucess to finde the white color in one line
     length = len(Line) - 2
-    if Line != []:
-        INDEX = FindRef(Line, length)
+    if(Line != [])and(rr == 0):
+        INDEX = FindLine(Line, length)
         #print('INDEX = ', INDEX)
         Line_N = DelRef(Line, INDEX)
         #print('Line_N = ', Line_N)
         return Line_N
+    elif(Line != [])and(rr == 1):
+        return Line
 
 
-def FindRef(Line, length):
+def FindLine(Line, length):
     INDEX = []
     idx = 0
     INDEX.append(idx)
@@ -118,19 +122,19 @@ def DelRef(Line, INDEX):
         idx = INDEX[i+1]
         #print('idx = ', idx)
         #print('i = ', i, '; diff = ', diff)
-        while(diff >= 8 and diff <= 33):
+        while(diff >= 7 and diff < 28):
             #print('in WHILE')
             #print('len(INDEX) = ', len(INDEX))
             num = Line[idx]
             for k in range(len(Line)-1, -1, -1):
-                print("k = ", k)
-
-                if(num[1] < 320-k*5):
-                    Line_n = []
-                    for j in range(INDEX[i], INDEX[i+1]):
-                        print('INDEX[i] = ', INDEX[i])
-                        print('j = ', j+1, ';\tLine[j]', Line[j+1])
-                        Line_n.append(Line[j+1])
+                #print("k = ", k)
+                #if(num[1] < 320-k*5):
+                Line_n = []
+                for j in range(INDEX[i], INDEX[i+1]):
+                    #print('INDEX[i] = ', INDEX[i])
+                    #print('j = ', j+1, ';\tLine[j]', Line[j+1])
+                    Line_n.append(Line[j+1])
+                # print('Line_n = ', Line_n)
             break
     return Line_n
 
@@ -152,13 +156,14 @@ def bubblesort(length, idx, Line):
 
 def LineForm(img, height, width, i_min, i_max):
     L = []
+    Line_temp = []
     for i in range (i_min, i_max):
-        # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
-        Line_temp = LinePos(img, height, width, i)
-        if(Line_temp == None):
+        #print('i = ', i, ', min = ', i_min, ', max = ', i_max)
+        Line_temp = LinePos(img, height, width, i, 0)
+        if(Line_temp == []):
             L = []
             return L
-        elif(Line_temp != None):
+        elif(Line_temp != []):
             l = len(Line_temp)
             a = Line_temp[0]
             num1 = a[1]
@@ -171,6 +176,26 @@ def LineForm(img, height, width, i_min, i_max):
     return L
 
 
+
+
+
+def RighorLeft(Line):
+    R = 0
+    L = 0
+    for i in range(len(Line) - 2):
+        if(Line[i] < Line[i+1]):
+            L += 1
+        elif(Line[i] > Line[i+1]):
+            R += 1
+    print('L = ', L)
+    print('R = ', R)
+    if(L < 8 or R > 0):
+        RoL = 0
+    elif(L >= 8):
+        RoL = 1
+    return RoL
+
+
 def MidCal(a, b):
     num1 = (a - b)/2
     num2 = b + num1
@@ -178,13 +203,13 @@ def MidCal(a, b):
     return num2
 
 
-def aLine(Line):
-    for i in range(len(Line) - 2):
-        Pnt1 = Line[i]
-        Pnt2 = Line[i+1]
-        if Pnt1[0] <= Pnt2[0]:
-            aLine = 0
-            return aLine
+#def aLine(Line):
+    #for i in range(len(Line) - 2):
+        #Pnt1 = Line[i]
+        #Pnt2 = Line[i+1]
+        #if Pnt1[0] <= Pnt2[0]:
+            #var = 0
+            #return var
 
 
 def LineorCurve(Line):
@@ -195,7 +220,6 @@ def LineorCurve(Line):
         Pnt2 = Line[len(Line) - 1]
         slope = (Pnt2[1] - Pnt1[1])/(Pnt2[0] - Pnt1[0])
         const = Pnt1[1] - (Pnt1[0] * slope)
-        aLine = aLine(Line)
 
         num1 = len(Line)/4
         num1 = int(num1)
@@ -221,7 +245,7 @@ def LineorCurve(Line):
         return LoC
 
 
-def LoCCal(Pnt3, slope, const, aLine):
+def LoCCal(Pnt3, slope, const):
     y1 = Pnt3[1]
     Pnt4 = Pnt3
     y2 = (slope * Pnt4[0]) + const
@@ -264,7 +288,7 @@ def LineSlope(Line, LoC):
     elif(LoC == 2):
         return LoC
 
-    if slope > 0.85:
+    if slope > 0.1835:#[!!!]MIGHT NOT CORRECT
     # it should be 0.8015
     # the PERSPECTIVE angle 0.5
     #           plus
@@ -272,11 +296,11 @@ def LineSlope(Line, LoC):
     # HOWEVER
     # we still need to concider about the extra slope
     # caused by the distance of the camera 0.2
-        slope = slope - 0.85
-    elif (slope <= 0.85) and (slope > 0):
+        slope = slope - 0.1565
+    elif (slope <= 0.1835) and (slope > 0.0615):
         slope = 0.0
-    elif (slope < -0.85):
-        slope = slope + 0.85
+    elif (slope < 0.0615):
+        slope = slope - 0.0615
     return slope
 
 
