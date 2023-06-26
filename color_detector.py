@@ -83,18 +83,92 @@ def ColDet(img, height, width, i):
 
 def LinePos(img, height, width, i):
     Line = []
+    length = 0
     Line = ColDet(img, height, width, i)
-    #print(Line)
+    print(i)
+    for i in range(len(Line)):
+        print(i, ':', Line[i])
+
+    #sucess to finde the white color in one line
+    length = len(Line) - 2
+    if Line != []:
+        INDEX = FindRef(Line, length)
+        #print('INDEX = ', INDEX)
+        Line_N = DelRef(Line, INDEX)
+        #print('Line_N = ', Line_N)
+        return Line_N
+
+
+def FindRef(Line, length):
+    INDEX = []
+    idx = 0
+    INDEX.append(idx)
+    #for idx in range(idx, len(Line)):
+    for idx in range(length + 2):
+        if(idx == length + 1):
+            idx_n = length + 1
+            INDEX.append(idx_n)
+            return INDEX
+        else:
+            idx_n = bubblesort(length, idx, Line)
+            #print('idx_n = ', idx_n)
+            if(idx == idx_n):
+                INDEX.append(idx_n)
+
+
+def DelRef(Line, INDEX):
+    Line_n = []
+    print('INDEX = ', INDEX)
+    for i in range(0, len(INDEX)-1):
+        diff = abs(INDEX[i+1] - INDEX[i])
+        idx = INDEX[i+1]
+        print('idx = ', idx)
+        print('i = ', i, '; diff = ', diff)
+
+        while (diff >= 5 and diff <= 13):
+            num = Line[idx]
+            if(len(INDEX) < 3) or (num[1] < 310):
+                Line_n = []
+                for j in range(INDEX[i], INDEX[i+1]):
+                    print('INDEX[i] = ', INDEX[i])
+                    print('j = ', j+1, ';\tLine[j]', Line[j+1])
+                    Line_n.append(Line[j+1])
+            i+=1
+            break
+
+    return Line_n
+
+
+def bubblesort(length, idx, Line):
+    j = idx
+    #while i >= idx and i <= length:
+    for i in range(idx, length + 1):
+        Pos1 = Line[i]
+        Num1 = Pos1[1]
+        Pos2 = Line[i+1]
+        Num2 = Pos2[1]
+        if((Num2 - Num1) == 1):
+            j += 1
+        else:
+            idx = j
+            return idx
+
+
+'''
+def LinePos(img, height, width, i):
+    Line = []
+    Line = ColDet(img, height, width, i)
+    print(Line)
     #sucess to finde the white color in one line
     length = len(Line)
     if Line != []:
         Line_max = Line[length - 1]
         cy_max = Line_max[1]
         FindMax(Line, length, cy_max)
-        #print('cy_max = ', cy_max)
+        print('cy_max = ', cy_max)
         ##sucess to finde the right white point
         cy_min = FindMin(Line, length)
-        #print('cy_min = ', cy_min)
+        print('cy_min = ', cy_min)
         #sucess to finde the left white point
         return cy_max, cy_min
 
@@ -109,13 +183,11 @@ def FindMin(Line, length):
         Line_temp = Line[k]
         tempmin = Line_temp[1]
         return minimum
-        '''
         while abs(tempmin - maximum) <= 10:
             minimum = tempmin
             #print(minimum)
             Line_min = Line_temp
             return minimum
-        '''
 
 
 def FindMax(Line, length, maximum):
@@ -127,16 +199,21 @@ def FindMax(Line, length, maximum):
         elif maximum < Line_temp[1]:
             maximum = Line_temp[1]
     return maximum
+'''
 
 
 def LineForm(img, height, width, i_min, i_max):
     L = []
     for i in range (i_min, i_max):
         # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
-        a = LinePos(img, height, width, i)[0]
-        b = LinePos(img, height, width, i)[1]
-        if(a != None)and(b != None):
-            temp = [int(MidCal(a, b)), i]
+        Line_temp = LinePos(img, height, width, i)
+        l = len(Line_temp)
+        a = Line_temp[0]
+        num1 = a[1]
+        b = Line_temp[l-1]
+        num2 = b[1]
+        if(num1 != None)and(num2 != None):
+            temp = [int(MidCal(num1, num2)), i]
             # print('[', MidCal(a, b), ',', i, ']')
             L.append(temp)
     return L
@@ -152,7 +229,9 @@ def MidCal(a, b):
 def LineorCurve(Line):
     LoC = 0
     Pnt1 = Line[0]
+    print('Pnt1 = ', Pnt1)
     Pnt2 = Line[len(Line) - 1]
+    print('Pnt2 = ', Pnt2)
     num = len(Line) - 15
     num = int(num)
     Pnt3 = Line[num]
