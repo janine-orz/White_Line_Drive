@@ -31,6 +31,7 @@ class FollowLine(Node):
         self.i = 0
         self.img = 0
         self.L = []
+        self.LoC = 0
         self.slope = 0
 
 
@@ -72,7 +73,6 @@ class FollowLine(Node):
 
     def ColDet(self, img, height, width, i):
         Col = [] #initialize the color array
-        # i = height - 50
         for j in range(width):
             color = self.ColRec(img, i, j)
             if color == "White":
@@ -83,57 +83,90 @@ class FollowLine(Node):
 
 
     def LinePos(self, img, height, width, i):
-        Line = [] #initialize the Line
+        Line = []
+        length = 0
         Line = self.ColDet(img, height, width, i)
-        #print(Line)
+
+        #for i in range(len(Line)):
+            #print(i, ':', Line[i])
+
         #sucess to finde the white color in one line
-        length = len(Line)
+        length = len(Line) - 2
         if Line != []:
-            Line_max = Line[length - 1]
-            cy_max = Line_max[1]
-            self.FindMax(Line, length, cy_max)
-            #print('cy_max = ', cy_max)
-            ##sucess to finde the right white point
-            cy_min = self.FindMin(Line, length)
-            #print('cy_min = ', cy_min)
-            #sucess to finde the left white point
-            return cy_max, cy_min
+            INDEX = self.FindRef(Line, length)
+            #print('INDEX = ', INDEX)
+            Line_N = self.DelRef(Line, INDEX)
+            #print('Line_N = ', Line_N)
+            return Line_N
 
 
-    def FindMin(self, Line, length):
-        Line_max = Line[length - 1]
-        maximum = Line_max[1]
-        Line_min = Line[0]
-        minimum = Line_min[1]
-        for k in range(length-1):
-            Line_temp = Line[k]
-            tempmin = Line_temp[1]
-            while abs(tempmin - maximum) <= 10:
-                minimum = tempmin
-                #print(minimum)
-                Line_min = Line_temp
-                return minimum
+    def FindRef(self, Line, length):
+        INDEX = []
+        idx = 0
+        INDEX.append(idx)
+        #for idx in range(idx, len(Line)):
+        for idx in range(length + 2):
+            if(idx == length + 1):
+                idx_n = length + 1
+                INDEX.append(idx_n)
+                return INDEX
+            else:
+                idx_n = self.bubblesort(length, idx, Line)
+                #print('idx_n = ', idx_n)
+                if(idx == idx_n):
+                    INDEX.append(idx_n)
 
 
-    def FindMax(self, Line, length, maximum):
-        for k in range(length-1):
-            Line_temp = Line[k+1]
-            if maximum > Line_temp[1]:
-                maximum = maximum
-            elif maximum < Line_temp[1]:
-                maximum = Line_temp[1]
-        return maximum
+    def DelRef(self, Line, INDEX):
+        Line_n = []
+        #print('INDEX = ', INDEX)
+        for i in range(0, len(INDEX)-1):
+            diff = abs(INDEX[i+1] - INDEX[i])
+            idx = INDEX[i+1]
+            #print('idx = ', idx)
+            #print('i = ', i, '; diff = ', diff)
+
+            while (diff >= 5 and diff <= 13):
+                num = Line[idx]
+                if(len(INDEX) < 3) or (num[1] < 310):
+                    Line_n = []
+                    for j in range(INDEX[i], INDEX[i+1]):
+                        #print('INDEX[i] = ', INDEX[i])
+                        #print('j = ', j+1, ';\tLine[j]', Line[j+1])
+                        Line_n.append(Line[j+1])
+                i+=1
+                break
+
+        return Line_n
+
+
+    def bubblesort(self, length, idx, Line):
+        j = idx
+        #while i >= idx and i <= length:
+        for i in range(idx, length + 1):
+            Pos1 = Line[i]
+            Num1 = Pos1[1]
+            Pos2 = Line[i+1]
+            Num2 = Pos2[1]
+            if((Num2 - Num1) == 1):
+                j += 1
+            else:
+                idx = j
+                return idx
 
 
     def LineForm(self, img, height, width, i_min, i_max):
         L = []
         for i in range (i_min, i_max):
             # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
-            a = self.LinePos(img, height, width, i)[0]
-            b = self.LinePos(img, height, width, i)[1]
-
-            if(a != None)and(b != None):
-                temp = [int(self.MidCal(a, b)), i]
+            Line_temp = self.LinePos(img, height, width, i)
+            l = len(Line_temp)
+            a = Line_temp[0]
+            num1 = a[1]
+            b = Line_temp[l-1]
+            num2 = b[1]
+            if(num1 != None)and(num2 != None):
+                temp = [int(self.MidCal(num1, num2)), i]
                 # print('[', MidCal(a, b), ',', i, ']')
                 L.append(temp)
         return L
@@ -146,8 +179,34 @@ class FollowLine(Node):
         return num2
 
 
+    def LineorCurve(self, Line):
+        LoC = 0
+        Pnt1 = Line[0]
+        #print('Pnt1 = ', Pnt1)
+        Pnt2 = Line[len(Line) - 1]
+        #print('Pnt2 = ', Pnt2)
+        num = len(Line) - 15
+        num = int(num)
+        Pnt3 = Line[num]
+        #print('Pnt3 = ', Pnt3[1])
+        y1 = Pnt3[1]
+        Pnt4 = Pnt3
+        slope = (Pnt2[1] - Pnt1[1])/(Pnt2[0] - Pnt1[0])
+        #print(slope)
+        const = Pnt1[1] - (Pnt1[0] * slope)
+        y2 = (slope * Pnt4[0]) + const
+        #print('Pnt4 = ', y2)
+        diff = y1 - y2
+        print('Diff = ', diff)
+        if(abs(diff) < 2.5):
+            LoC = 0
+        else:
+            LoC = 1
+        return LoC
+
+
     def LineSlope(self, Line):
-        slope = 0 #initialize the slope
+        slope = 0.0 #initialize the slope
         Pnt1 = Line[0]
         Pnt2 = Line[len(Line) - 1]
         slope = self.GetAngl(Pnt1, Pnt2)
@@ -167,22 +226,13 @@ class FollowLine(Node):
             slope = slope + 1.0015
         return slope
 
+
     def GetAngl(self, Pnt1, Pnt2):
         angle = 0.0
         opp = Pnt2[0] - Pnt1[0]
         adj = Pnt2[1] - Pnt1[1]
         angle = np.arctan(opp / adj)
-
-        '''
-        angle = np.arctan(opp / adj)
-        print(angle)
-        Ang.append(angle)
-        add = 0
-        for i in range(len(Ang)):
-            add += abs(Ang[i])
-        angle = add / (len(Ang))'''
         return angle
-
 
 
     def listener_callback(self, data):
@@ -192,8 +242,17 @@ class FollowLine(Node):
         self.img = img_cv
         height, width, _ = img_cv.shape
         i_bot = height - 5
-        i_mid = height - 30
+        i_mid = height - 45
+
         Line = self.LineForm(self.img, height, width, i_mid, i_bot)
+
+        for i in range(len(Line)):
+            Pnt = Line[i]
+            print(Pnt)
+            cv2.circle(self.img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 5)
+
+        self.LoC = self.LineorCurve(Line)
+        print('LoC = ', self.LoC)
         self.slope = self.LineSlope(Line)
         #publish the cv image back to publisher
 
@@ -215,30 +274,32 @@ class FollowLine(Node):
 
     def timer_callback(self):
         ''''''
-        if(self.slope == 0):
+        if(self.slope == 0.0):
         #call the class variable
         #since the publisher create the msg itself
         #you are not allow to use the msg in publisher
         #[ self.i < 20): ]
-            msg = Twist()
-            msg.linear.x = 0.03
-            msg.angular.z = 0.00
-            self.publisher_.publish(msg)
-            print("Driving!")
+            #msg = Twist()
+            #msg.linear.x = 0.02
+            #msg.angular.z = 0.00
+            #self.publisher_.publish(msg)
+            print("Straight Driving!")
+        elif(self.slope != 0.0):
+            #if(self.i < 10):
+                #msg = Twist()
+                #msg.linear.x = 0.02
+                #msg.angular.z = 0.00
+                #self.publisher_.publish(msg)
+                #print("Straight Driving!")
+            #else:
             #msg = Twist()
             #msg.linear.x = 0.00
             #msg.angular.z = 0.00
             #self.publisher_.publish(msg)
-            #print("Stop!")
-        else:
-            msg = Twist()
-            msg.linear.x = 0.03
-            msg.angular.z = self.slope
-            self.publisher_.publish(msg)
+            #self.i += 1
             print("Turning!")
+            #self.i = 0
         ''''''
-        self.get_logger().info('Publishing: "%i"' % self.i)
-        self.i += 1
 
 
 def main(args=None):
