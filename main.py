@@ -37,7 +37,7 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
         J = (cd.ColDet(img, height, width, i, string1))
         # print('J = ', J)
         U = ((J == None)or(J == []))
-        # print(string, 'at', i, 'cd.ColDet(img,', height, ',', width, ',', i, ',', string, '):', U)
+        # print(string1, 'at', i, 'cd.ColDet(img,', height, ',', width, ',', i, ',', string1, '):', U)
         if((J == None)or(J == [])):
             idx1 = i
             # print('\t i = ', i, '\tidx1 == height-1:', idx1 == height-1)
@@ -47,26 +47,6 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
                 return i
         else:
             return i
-
-
-def DeterHeight2(img, height, width):
-    print('height = ', height, 'width = ', width)
-    Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")
-    Gminhigt = DeterHeight1(img, height, width, 0, height, "Green" or "Yellow", "min")
-    print('minhigt for W:', Wminhigt, '; \tfor G:', Gminhigt)
-
-    Wmaxhigt = DeterHeight1(img, height, width, height-1, -1, "White", "max")
-    Gmaxhigt = DeterHeight1(img, height, width, height-1, -1, "Green" or "Yellow", "max")
-    print('maxhigt for W:', Wmaxhigt, '; \tfor G:', Gmaxhigt)
-
-    if(abs(Gminhigt-Gmaxhigt) <= 50)or(abs(Wminhigt-Wmaxhigt) <= 50):
-        minhigt = max(Wminhigt, Gminhigt)
-        maxhigt = max(Wmaxhigt, Gmaxhigt)
-        return minhigt, maxhigt
-
-    # minhigt = max(Wminhigt, Gminhigt) - 0
-    # maxhigt = (height-1) - min(Wmaxhigt, Gmaxhigt)
-    return Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt
 
 
 def DrawTangent(Line, img, string):
@@ -116,13 +96,17 @@ def DrawTangent(Line, img, string):
 
 def main():
 
-    PNGList = ["001.png", "002.png", "003.png", "004.png", "007.png", 
-               "008.png", "009.png", "010.png", "011.png", "012.png", 
-               "013.png", "014.png"]
+    PNGList = ["001.png", "002.png", "003.png", "004.png", "005.png", 
+               "006.png", "007.png", "008.png", "009.png", "010.png", 
+               "011.png", "012.png", "013.png", "014.png", "015.png", 
+               "016.png", "017.png", "018.png", "019.png", "020.png", ]
+            #   ["021.png", "022.png", "023.png", "024.png", "025.png", 
+            #    "026.png", "027.png", "028.png", "029.png", "030.png", 
+            #    "031.png", "032.png", "033.png", "034.png", "035.png", ]
     n = len(PNGList)
     # for i in range(0, n-1):
     start = time.time()
-    i = 4 # 14
+    i = 5 # 14
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -153,12 +137,18 @@ def main():
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
     height, width, _ = img.shape
-    Wminhigt = DeterHeight2(img, height, width)[0]
-    Wmaxhigt = DeterHeight2(img, height, width)[1]
-    Gminhigt = DeterHeight2(img, height, width)[2]
-    Gmaxhigt = DeterHeight2(img, height, width)[3]
+    Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")
+    Gminhigt = DeterHeight1(img, height, width, 0, height, "Green", "min")
+    print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
+    Wmaxhigt = DeterHeight1(img, height, width, height-1, -1, "White", "max")
+    Gmaxhigt = DeterHeight1(img, height, width, height-1, -1, "Green", "max")
+    print("Wmaxhigt = ", Wmaxhigt, "\tGmaxhigt = ", Gmaxhigt)
 
-    # print(cd.ColDet(img, 240 , 320 , 1 , "Green"))
+    # A = [24, 103]
+    # print(cd.ColRec(img, A[1], A[0]))
+    # cv2.circle(img, (A[0], A[1]), 5, (255, 0, 0), 1)
+
+    # print(cd.ColDet(img, height, width, 50, "Green"))
 
     Line = cd.LineForm(img, height, width, "White", "Green", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
     # GLine = cd.LineForm(img, height, width, "Green" or "Yellow", minhigt, maxhigt)
@@ -177,17 +167,17 @@ def main():
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
-    LoC = cd.LineorCurve(Line)
-    print('LoC = ' , LoC)
-    slope = cd.LineSlope(Line, LoC)
-    if(LoC == 0):
-        # DrawTangent(WLine, img, "bot")
-        # DrawTangent(WLine, img, "line")
-        print('slope = ', slope)
-    elif(LoC == 1):
-        # DrawTangent(WLine, img, "bot")
-        # DrawTangent(WLine, img, "line")
-        print('slope = ', slope)
+    # LoC = cd.LineorCurve(Line)
+    # print('LoC = ' , LoC)
+    # slope = cd.LineSlope(Line, LoC)
+    # if(LoC == 0):
+    #     # DrawTangent(WLine, img, "bot")
+    #     # DrawTangent(WLine, img, "line")
+    #     print('slope = ', slope)
+    # elif(LoC == 1):
+    #     # DrawTangent(WLine, img, "bot")
+    #     # DrawTangent(WLine, img, "line")
+    #     print('slope = ', slope)
     
 
     end = time.time()
@@ -196,7 +186,7 @@ def main():
     # cv2.imshow("IMG_CV", img_cv)
     cv2.imshow("IMG", img)
     # cv2.imshow("GIMG", Gimg)
-    # cv2.imshow("IMG_HSV", img_hsv)
+    cv2.imshow("IMG_HSV", img_hsv)
     cv2.waitKey(0)
     
 

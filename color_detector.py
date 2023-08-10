@@ -15,10 +15,11 @@ def ColRec(img, i, j):
     b_val = pixel_center[0]
     g_val = pixel_center[1]
     r_val = pixel_center[2]
+    # print("\tB = ", b_val, "\tG = ", g_val, "\tR = ", r_val)
 
-    if b_val > 125 and g_val > 130 and r_val > 150:
+    if b_val > 180 and g_val > 180 and r_val > 180:
         color = "White"
-    elif b_val < 60 and g_val < 80 and r_val < 40:
+    elif b_val < 90 and g_val < 110 and r_val < 90:
         color = "Black"
     else:
         # print("...............Searching in HSV_image...................")
@@ -27,31 +28,30 @@ def ColRec(img, i, j):
         h_val = pixel_center[0]
         s_val = pixel_center[1]
         v_val = pixel_center[2]
-        # print(h_val, s_val, v_val)
-        if(s_val < 65 and v_val < 65):
-            # print("s_val < 50 and v_val < 65")
-            color = "White"
-        elif h_val < 5:
-            color = "Red"
-        elif h_val < 22:
-            color = "Orange"
-        elif h_val < 33:
-            color = "Yellow"
-        elif h_val < 80:
-            color = "Green"
-        elif h_val < 131:
-            color = "Blue"
-        elif h_val < 167:
-            color = "Violet"
-        else:
-            color = "Red"
+        # print("H = ", h_val)
+        if s_val >= 65 and v_val >= 65:
+            if h_val < 5:
+                color = "Red"
+            elif h_val < 22:
+                color = "Orange"
+            elif h_val < 33:
+                color = "Yellow"
+            elif h_val < 78:
+                color = "Green"
+            elif h_val < 131:
+                color = "Blue"
+            elif h_val < 167:
+                color = "Violet"
+            else:
+                color = "Red"
     return color
+
 
 
 def ColDet(img, height, width, i, string):
     Col = []
     if(string == 'White'):
-        for j in range(width - 161, width, 1):
+        for j in range(width - 120, width, 1):
             color = ColRec(img, i, j)
             # print('[', i, ',', j, '] = ', color)
             if color == string:
@@ -60,7 +60,7 @@ def ColDet(img, height, width, i, string):
                 Col.append(temp)
         return Col
     elif(string == 'Green'):
-        for j in range(0, width - 159, 1):
+        for j in range(0, width - 180, 1):
             color = ColRec(img, i, j)
             # print('[', i, ',', j, '] = ', color)
             if color == string:
@@ -71,48 +71,40 @@ def ColDet(img, height, width, i, string):
 
 
 def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_max):
-    # print('i_min, i_max =', i_min, i_max)
     L = []
     L1 = []
     L2 = []
     Line1_temp = []
     Line2_temp = []
     i_min = max(Wi_min, Gi_min)
-    print('Wi_min = ', Wi_min, '\t\tGi_min = ', Gi_min)
     i_max = min(Wi_max, Gi_max)
-    print('Wi_max = ', Wi_max, '\t\tGi_max = ', Gi_max)
     if(i_min == Gi_min): 
-        print("i_min == Gi_min")# The lower bound of Whiteline is smaller then the Greenline
+        # The lower bound of Whiteline is smaller then the Greenline
         for h in range (Wi_min, Gi_min):
             Line1_temp = ColDet(img, height, width, h, string1)
             # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
             L1 = Lineform(Line1_temp, L1, h, h, string1, img, height, width)
-            L2 = L1[0] - 200
+            L2 = L1[0] - 220
             # print('in range (0, Gi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, h]
             L.append(temp)
     elif(i_min == Wi_min):
-        print("i_min == Wi_min")
         for h in range (Gi_min, Wi_min):
             Line2_temp = ColDet(img, height, width, h, string2)
-            print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
+            # print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
             L2 = Lineform(Line2_temp, L2, h, h, string2, img, height, width)
-            L1 = L2[0] + 200
+            L1 = L2[0] + 220
             # print('in range (0, Wi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, h]
             L.append(temp)
     for i in range(i_min, i_max):
-        # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
-        # print(string1, "\n")
         Line1_temp = ColDet(img, height, width, i, string1)
-        # print(string2, "\n")
         Line2_temp = ColDet(img, height, width, i, string2)
-        # print('Line1_temp = ', Line1_temp, '\tLine2_temp = ', Line2_temp)
         L1 = Lineform(Line1_temp, L1, i, i, string1, img, height, width)
         L2 = Lineform(Line2_temp, L2, i, i, string2, img, height, width)
-        # print('\tL1 = ', L1, '\t\tL2 = ', L2)
+        print('\tGREEN LINE = ', L2, '\t\tWHITE LINE = ', L1)
         x_temp = MidCal(L1[0], L2[0])
         temp = [x_temp, i]
         L.append(temp)
@@ -121,7 +113,7 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
             Line1_temp = ColDet(img, height, width, k, string1)
             # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
             L1 = Lineform(Line1_temp, L1, k, k, string1, img, height, width)
-            L2 = L1[0] - 200
+            L2 = 0
             # print('in range (Gi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, k]
@@ -129,9 +121,8 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
     elif(i_max == Wi_max):
         for k in range (Wi_max, Gi_max):
             Line2_temp = ColDet(img, height, width, k, string2)
-            print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
             L2 = Lineform(Line2_temp, L2, k, k, string2, img, height, width)
-            L1 = L2[0] + 300
+            L1 = 319
             # print('in range (Wi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, k]
@@ -144,15 +135,10 @@ def Lineform(Line_temp, L, i, j, string, img, height, width):
     LL = []
     LL.append(L)
     if((Line_temp == [])or(Line_temp == None)):
-        # print('i = ', i, 'i-1 = ', i-1, ', string = ', string)
-        # Line_temp = ColDet(img, height, width, i-1, string)
-        # temp = Lineform(Line_temp, i-1, j, string, img, height, width)
-        # print("\t", temp)
-        print("len L = ", len(LL), "L = ", LL)
-        if len(LL) < 2:
-            pos = L
-        else:
-            pos = L[-1]
+        # if len(LL) < 2:
+        pos = L
+        # else:
+        #     pos = L[-1]
         # print("\tpos", pos)
         num3 = pos[0]
         # print("\tnum3", num3)
