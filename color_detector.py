@@ -78,43 +78,38 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
     Line2_temp = []
     i_min = max(Wi_min, Gi_min)
     i_max = min(Wi_max, Gi_max)
+    for i in range(i_min, i_max):
+        Line1_temp = ColDet(img, height, width, i, string1)
+        Line2_temp = ColDet(img, height, width, i, string2)
+        L1 = Lineform(Line1_temp, L1, i, i, string1, img, height, width)
+        L2 = Lineform(Line2_temp, L2, i, i, string2, img, height, width)
+        print("L1 = ", L1, "\t\tL2 = ", L2)
+        x_temp = MidCal(L1[0], L2[0])
+        temp = [x_temp, i]
+        L.append(temp)
     if(i_min == Gi_min): 
         # The lower bound of Whiteline is smaller then the Greenline
         for h in range (Wi_min, Gi_min):
             Line1_temp = ColDet(img, height, width, h, string1)
-            # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
             L1 = Lineform(Line1_temp, L1, h, h, string1, img, height, width)
-            L2 = L1[0] - 220
-            # print('in range (0, Gi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
+            L2 = 0
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, h]
             L.append(temp)
     elif(i_min == Wi_min):
         for h in range (Gi_min, Wi_min):
             Line2_temp = ColDet(img, height, width, h, string2)
-            # print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
             L2 = Lineform(Line2_temp, L2, h, h, string2, img, height, width)
-            L1 = L2[0] + 220
-            # print('in range (0, Wi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
+            L1 = 319
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, h]
             L.append(temp)
-    for i in range(i_min, i_max):
-        Line1_temp = ColDet(img, height, width, i, string1)
-        Line2_temp = ColDet(img, height, width, i, string2)
-        L1 = Lineform(Line1_temp, L1, i, i, string1, img, height, width)
-        L2 = Lineform(Line2_temp, L2, i, i, string2, img, height, width)
-        print('\tGREEN LINE = ', L2, '\t\tWHITE LINE = ', L1)
-        x_temp = MidCal(L1[0], L2[0])
-        temp = [x_temp, i]
-        L.append(temp)
-    if(i_max == Gi_max): # The Greenline is shorter then the Whiteline
+    if(i_max == Gi_max): 
+        # The Greenline is shorter then the Whiteline
         for k in range (Gi_max, Wi_max):
             Line1_temp = ColDet(img, height, width, k, string1)
-            # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
             L1 = Lineform(Line1_temp, L1, k, k, string1, img, height, width)
             L2 = 0
-            # print('in range (Gi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, k]
             L.append(temp)
@@ -123,7 +118,6 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
             Line2_temp = ColDet(img, height, width, k, string2)
             L2 = Lineform(Line2_temp, L2, k, k, string2, img, height, width)
             L1 = 319
-            # print('in range (Wi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, k]
             L.append(temp)
@@ -131,18 +125,20 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
 
 
 def Lineform(Line_temp, L, i, j, string, img, height, width):
-    # print('i = ', i, ', string = ', string)
+    print('i = ', i, ', string = ', string)
     LL = []
     LL.append(L)
     if((Line_temp == [])or(Line_temp == None)):
-        # if len(LL) < 2:
-        pos = L
-        # else:
-        #     pos = L[-1]
-        # print("\tpos", pos)
-        num3 = pos[0]
-        # print("\tnum3", num3)
-        temp = [num3, j]
+        print(type(LL), "\tL = ", L, "\tLL = ", LL)
+        pos = LL[-1]
+        # print("type(pos) = ", type(pos), "\tpos = ", pos, "(type(pos) == 'list')", isinstance(pos, list))
+        if isinstance(pos, list):
+            # print("... pos is list!! ...")
+            num3 = pos[0]
+            temp = [num3, j]
+        else:
+            pos = LL[0]
+            temp = [pos, j]
         return temp
     elif((Line_temp != None)or(Line_temp != [])):
         l = len(Line_temp)

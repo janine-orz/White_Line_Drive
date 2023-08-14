@@ -32,6 +32,7 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     elif(idx1 > idx2):
         a = -1
     for i in range(idx1, idx2, a):
+        # print("string2 = ", string2)
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
         J = (cd.ColDet(img, height, width, i, string1))
@@ -47,6 +48,12 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
                 return i
         else:
             return i
+
+
+def DeterHeight2(i_min, i_max):
+    if (i_min == 239) and (i_max == 0):
+        i_max = i_min
+    return i_min, i_max
 
 
 def DrawTangent(Line, img, string):
@@ -96,17 +103,18 @@ def DrawTangent(Line, img, string):
 
 def main():
 
-    PNGList = ["001.png", "002.png", "003.png", "004.png", "005.png", 
-               "006.png", "007.png", "008.png", "009.png", "010.png", 
-               "011.png", "012.png", "013.png", "014.png", "015.png", 
-               "016.png", "017.png", "018.png", "019.png", "020.png", ]
+    PNGList = ["001.png", "002.png", "003.png", "004.png", ]
+            #    "005.png", 
+            #    "006.png", "007.png", "008.png", "009.png", "010.png", 
+            #    "011.png", "012.png", "013.png", "014.png", "015.png", 
+            #    "016.png", "017.png", "018.png", "019.png", "020.png", ]
             #   ["021.png", "022.png", "023.png", "024.png", "025.png", 
             #    "026.png", "027.png", "028.png", "029.png", "030.png", 
             #    "031.png", "032.png", "033.png", "034.png", "035.png", ]
     n = len(PNGList)
     # for i in range(0, n-1):
     start = time.time()
-    i = 5 # 14
+    i = 3 # 14
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -139,16 +147,18 @@ def main():
     height, width, _ = img.shape
     Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")
     Gminhigt = DeterHeight1(img, height, width, 0, height, "Green", "min")
-    print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
     Wmaxhigt = DeterHeight1(img, height, width, height-1, -1, "White", "max")
     Gmaxhigt = DeterHeight1(img, height, width, height-1, -1, "Green", "max")
-    print("Wmaxhigt = ", Wmaxhigt, "\tGmaxhigt = ", Gmaxhigt)
+    Wminhigt, Wmaxhigt = DeterHeight2(Wminhigt, Wmaxhigt)
+    Gminhigt, Gmaxhigt = DeterHeight2(Gminhigt, Gmaxhigt)
+    print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
+    print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
 
     # A = [24, 103]
     # print(cd.ColRec(img, A[1], A[0]))
     # cv2.circle(img, (A[0], A[1]), 5, (255, 0, 0), 1)
 
-    # print(cd.ColDet(img, height, width, 50, "Green"))
+    # print(cd.ColDet(img, height, width, 191, "Green"))
 
     Line = cd.LineForm(img, height, width, "White", "Green", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
     # GLine = cd.LineForm(img, height, width, "Green" or "Yellow", minhigt, maxhigt)

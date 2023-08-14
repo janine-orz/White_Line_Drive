@@ -42,50 +42,41 @@ class FollowLine(Node):
         self.L = []
         self.LoC = 0
         self.slope = 0
-        self.slope_bot = 0
-        self.slope_line = 0
 
 
     def ColRec(self, img, i, j):
         color = "Undefined"
         pixel_center = []
-        # print('i = ', type(i), i, ';j = ', type(j), j)
-        # i = int(i)
-        # j = int(j)
         pixel_center = img[i, j]
         b_val = pixel_center[0]
         g_val = pixel_center[1]
         r_val = pixel_center[2]
 
-        if b_val > 170 and g_val > 170 and r_val > 170:
+        if b_val > 160 and g_val > 160 and r_val > 160:
             color = "White"
-        elif b_val < 60 and g_val < 80 and r_val < 40:
+        elif b_val < 90 and g_val < 110 and r_val < 90:
             color = "Black"
         else:
-            # print("...............Searching in HSV_image...................")
             hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
             pixel_center = hsv_img[i, j]
             h_val = pixel_center[0]
             s_val = pixel_center[1]
             v_val = pixel_center[2]
-            # print(h_val, s_val, v_val)
-            # if(s_val < 50 and v_val < 50):
-            #     # print("s_val < 50 and v_val < 65")
-            #     color = "White"
-            if h_val < 5:
-                color = "Red"
-            elif h_val < 22:
-                color = "Orange"
-            elif h_val < 33:
-                color = "Yellow"
-            elif h_val < 70:
-                color = "Green"
-            elif h_val < 131:
-                color = "Blue"
-            elif h_val < 167:
-                color = "Violet"
-            else:
-                color = "Red"
+            if s_val >= 65 and v_val >= 65:
+                if h_val < 5:
+                    color = "Red"
+                elif h_val < 22:
+                    color = "Orange"
+                elif h_val < 33:
+                    color = "Yellow"
+                elif h_val < 78:
+                    color = "Green"
+                elif h_val < 131:
+                    color = "Blue"
+                elif h_val < 167:
+                    color = "Violet"
+                else:
+                    color = "Red"
         return color
 
 
@@ -93,18 +84,16 @@ class FollowLine(Node):
     def ColDet(self, img, height, width, i, string):
         Col = []
         if(string == 'White'):
-            for j in range(width - 161, width, 1):
+            for j in range(width - 120, width, 1):
                 color = self.ColRec(img, i, j)
-                # print('[', i, ',', j, '] = ', color)
                 if color == string:
                 #sucess to find the white color
                     temp = [i, j]
                     Col.append(temp)
             return Col
         elif(string == 'Green'):
-            for j in range(0, width - 159, 1):
+            for j in range(0, width - 180, 1):
                 color = self.ColRec(img, i, j)
-                # print('[', i, ',', j, '] = ', color)
                 if color == string:
                 #sucess to find the white color
                     temp = [i, j]
@@ -113,68 +102,52 @@ class FollowLine(Node):
 
 
     def LineForm(self, img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_max):
-        # print('i_min, i_max =', i_min, i_max)
         L = []
         L1 = []
         L2 = []
         Line1_temp = []
         Line2_temp = []
         i_min = max(Wi_min, Gi_min)
-        # print('Wi_min = ', Wi_min, '\t\tGi_min = ', Gi_min)
         i_max = min(Wi_max, Gi_max)
-        # print('Wi_max = ', Wi_max, '\t\tGi_max = ', Gi_max)
+        for i in range(i_min, i_max):
+            Line1_temp = self.ColDet(img, height, width, i, string1)
+            Line2_temp = self.ColDet(img, height, width, i, string2)
+            L1 = self.Lineform(Line1_temp, L1, i, i, string1, img, height, width)
+            L2 = self.Lineform(Line2_temp, L2, i, i, string2, img, height, width)
+            x_temp = self.MidCal(L1[0], L2[0])
+            temp = [x_temp, i]
+            L.append(temp)
         if(i_min == Gi_min): 
-            # print("i_min == Gi_min")# The lower bound of Whiteline is smaller then the Greenline
+            # The lower bound of Whiteline is smaller then the Greenline
             for h in range (Wi_min, Gi_min):
                 Line1_temp = self.ColDet(img, height, width, h, string1)
-                # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
                 L1 = self.Lineform(Line1_temp, L1, h, h, string1, img, height, width)
-                L2 = L1[0] - 200
-                # print('in range (0, Gi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
+                L2 = 0
                 x_temp = self.MidCal(L1[0], L2)
                 temp = [x_temp, h]
                 L.append(temp)
         elif(i_min == Wi_min):
-            # print("i_min == Wi_min")
             for h in range (Gi_min, Wi_min):
                 Line2_temp = self.ColDet(img, height, width, h, string2)
-                # print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
                 L2 = self.Lineform(Line2_temp, L2, h, h, string2, img, height, width)
-                L1 = L2[0] + 200
-                # print('in range (0, Wi_min)\tL1 = ', L1, '\t\tL2 = ', L2)
+                L1 = 319
                 x_temp = self.MidCal(L1, L2[0])
                 temp = [x_temp, h]
                 L.append(temp)
-        for i in range(i_min, i_max):
-            # print('i = ', i, ', min = ', i_min, ', max = ', i_max)
-            # print(string1, "\n")
-            Line1_temp = self.ColDet(img, height, width, i, string1)
-            # print(string2, "\n")
-            Line2_temp = self.ColDet(img, height, width, i, string2)
-            # print('Line1_temp = ', Line1_temp, '\tLine2_temp = ', Line2_temp)
-            L1 = self.Lineform(Line1_temp, L1, i, i, string1, img, height, width)
-            L2 = self.Lineform(Line2_temp, L2, i, i, string2, img, height, width)
-            # print('\tL1 = ', L1, '\t\tL2 = ', L2)
-            x_temp = self.MidCal(L1[0], L2[0])
-            temp = [x_temp, i]
-            L.append(temp)
-        if(i_max == Gi_max): # The Greenline is shorter then the Whiteline
+        if(i_max == Gi_max): 
+            # The Greenline is shorter then the Whiteline
             for k in range (Gi_max, Wi_max):
                 Line1_temp = self.ColDet(img, height, width, k, string1)
-                # print('color = ', string1, '\t\tLine1_temp = ', Line1_temp)
                 L1 = self.Lineform(Line1_temp, L1, k, k, string1, img, height, width)
-                L2 = L1[0] - 200
-                # print('in range (Gi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
+                L2 = 0
                 x_temp = self.MidCal(L1[0], L2)
                 temp = [x_temp, k]
                 L.append(temp)
         elif(i_max == Wi_max):
             for k in range (Wi_max, Gi_max):
                 Line2_temp = self.ColDet(img, height, width, k, string2)
-                # print('color = ', string2, '\t\tLine2_temp = ', Line2_temp)
                 L2 = self.Lineform(Line2_temp, L2, k, k, string2, img, height, width)
-                L1 = L2[0] + 300
-                # print('in range (Wi_max, height)\twhiteline = ', L1, '\t\tgreenline = ', L2)
+                L1 = 319
                 x_temp = self.MidCal(L1, L2[0])
                 temp = [x_temp, k]
                 L.append(temp)
@@ -182,23 +155,20 @@ class FollowLine(Node):
 
 
     def Lineform(self, Line_temp, L, i, j, string, img, height, width):
-        # print('i = ', i, ', string = ', string)
         LL = []
         LL.append(L)
         if((Line_temp == [])or(Line_temp == None)):
-            # print('i = ', i, 'i-1 = ', i-1, ', string = ', string)
-            # Line_temp = ColDet(img, height, width, i-1, string)
-            # temp = Lineform(Line_temp, i-1, j, string, img, height, width)
-            # print("\t", temp)
-            # print("len L = ", len(LL), "L = ", LL)
-            if len(LL) < 2:
-                pos = L
-            else:
-                pos = L[-1]
-            # print("\tpos", pos)
-            num3 = pos[0]
-            # print("\tnum3", num3)
-            temp = [num3, j]
+            #if there is a stop point in the line, then we take the last point to fix the line
+            #######################
+            #HOW TO AVOID AN ERROR#
+            #######################
+            pos = LL[-1]
+            if isinstance(pos, list):
+                print("pos = ", pos)
+                num3 = pos[0]
+                temp = [num3, j]
+            elif isinstance(pos, int):
+                temp = [pos, j]
             return temp
         elif((Line_temp != None)or(Line_temp != [])):
             l = len(Line_temp)
@@ -230,34 +200,6 @@ class FollowLine(Node):
             return num2
 
 
-    # def ActionPath(self, img, height, width, minhigt, maxhigt, Rstring, Lstring):
-    #     Line = []
-    #     WLine = self.LineForm(img, height, width, Rstring, minhigt, maxhigt)
-    #     # print('WLine = ', WLine)
-    #     # WLine = checkagain(img, WLine, height, width, Rstring)
-    #     GLine = self.LineForm(img, height, width, Lstring, minhigt, maxhigt)
-    #     # print('GLine = ', GLine)
-    #     # GLine = checkagain(img, GLine, height, width, Lstring)
-    #     # start = time.time()
-    #     if((WLine != [])and(GLine != [])):
-    #         m = min(len(WLine), len(GLine))
-    #         for i in range(m):
-    #             Pnt1 = WLine[i]
-    #             Pnt2 = GLine[i]
-    #             x = self.MidCal(Pnt1[0], Pnt2[0])
-    #             y = Pnt1[1]
-    #             # print(x, y)
-    #             Pnt0 = [x, y]
-    #             Line.append(Pnt0)
-    #         return Line
-    #     elif(WLine == []):
-    #         LCol = 0
-    #         return LCol
-    #     elif(GLine == []):
-    #         LCol = 1
-    #         return LCol
-
-
     # This function is used to check if the line is straight or not
     # if it is straight then LoC = 0
     # if it is a curve then Loc = 1
@@ -267,7 +209,6 @@ class FollowLine(Node):
             Pnt1 = Line[0]
             Pnt2 = Line[len(Line) - 1]
             slope = (Pnt2[0] - Pnt1[0])/(Pnt2[1] - Pnt1[1])
-            print(Pnt1, '\t', Pnt2)
             const1 = Pnt1[0] - (Pnt1[1] * slope)
             const2 = Pnt2[0] - (Pnt2[1] * slope)
             const = (const1 + const2)/2
@@ -383,18 +324,21 @@ class FollowLine(Node):
         # for idx1 < idx2: Check from upper to bottom, if there is "string" points
         # for idx1 > idx2: Check from bottom to upper, if there is "string" points
             J = (self.ColDet(img, height, width, i, string1))
-            # print('J = ', J)
             U = ((J == None)or(J == []))
-            # print(string, 'at', i, 'cd.ColDet(img,', height, ',', width, ',', i, ',', string, '):', U)
             if((J == None)or(J == [])):
                 idx1 = i
-                # print('\t i = ', i, '\tidx1 == height-1:', idx1 == height-1)
                 if((idx1 == height-1)and(string2 == 'min')):
                     return i
                 elif((idx1 == 0)and(string2 == 'max')):
                     return i
             else:
                 return i
+
+    
+    def DeterHeight2(self, i_min, i_max):
+        if (i_min == 239) and (i_max == 0):
+            i_max = i_min
+        return i_min, i_max
 
 
     # the callback function of the subscription
@@ -430,19 +374,20 @@ class FollowLine(Node):
         Gminhigt = self.DeterHeight1(img, height, width, 0, height, "Green", "min")
         Wmaxhigt = self.DeterHeight1(img, height, width, height-1, -1, "White", "max")
         Gmaxhigt = self.DeterHeight1(img, height, width, height-1, -1, "Green", "max")
-
+        Wminhigt, Wmaxhigt = self.DeterHeight2(Wminhigt, Wmaxhigt)
+        Gminhigt, Gmaxhigt = self.DeterHeight2(Gminhigt, Gmaxhigt)
+        print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
+        print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
         # find the action path
-        # WLine = self.LineForm(img, height, width, "White", minhigt, maxhigt)
-        # GLine = self.LineForm(img, height, width, "Green" or "Yellow", minhigt, maxhigt)
-        # Line = self.ActionPath(img, height, width, minhigt, maxhigt, "White", "Green" or "Yellow")
         Line = self.LineForm(img, height, width, "White", "Green", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
         
 
         self.LoC = self.LineorCurve(Line)
-        print('LoC = ', self.LoC)
-        slope_n = self.LineSlope(Line, self.LoC)
-        self.slope = slope_n - self.slope
-        print('slope = ', self.slope, 'slope_n = ', slope_n)
+        # print('LoC = ', self.LoC)
+        self.slope = self.LineSlope(Line, self.LoC)
+        # slope_n = self.LineSlope(Line, self.LoC)
+        # self.slope = slope_n - self.slope
+        print('slope = ', self.slope) # 'slope_n = ', slope_n)
 
         # publish the cv image back to publisher
 
@@ -451,12 +396,7 @@ class FollowLine(Node):
         # if((Line != 0)and(Line != 1)):
         for i in range(len(Line)):
             Pnt = Line[i]
-            # Pnt1 = WLine[i]
-            # Pnt2 = GLine[i]
-            # print('i = ', i, '; Pos = ', Pnt2)
             cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
-            # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
-            # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
         ''''''
         
         end = time.time()
@@ -471,20 +411,20 @@ class FollowLine(Node):
 
 
     def timer_callback(self):
-        if(abs(self.slope) <= 0.005):
+        if(abs(self.slope) <= 0.01):
         #call the class variable
         #since the publisher create the msg itself
         #you are not allow to use the msg in publisher
         #[ self.i < 20): ]
             msg = Twist()
-            msg.linear.x = 0.00
+            msg.linear.x = 0.02
             msg.angular.z = 0.00
             self.publisher_.publish(msg)
             print("Straight Driving!")
-        elif(abs(self.slope) > 0.005):
+        elif(abs(self.slope) > 0.01):
             msg = Twist()
-            msg.linear.x = 0.00
-            msg.angular.z = 0.00 # self.slope
+            msg.linear.x = 0.02
+            msg.angular.z = self.slope
             self.publisher_.publish(msg)
             print("Turning!")
         elif(self.LoC == 2):
