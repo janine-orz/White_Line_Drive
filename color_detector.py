@@ -29,14 +29,14 @@ def ColRec(img, i, j):
         s_val = pixel_center[1]
         v_val = pixel_center[2]
         # print("H = ", h_val)
-        if s_val >= 65 and v_val >= 65:
+        if s_val >= 60 and v_val >= 60:
             if h_val < 5:
                 color = "Red"
             elif h_val < 22:
                 color = "Orange"
             elif h_val < 33:
                 color = "Yellow"
-            elif h_val < 78:
+            elif h_val < 75:
                 color = "Green"
             elif h_val < 131:
                 color = "Blue"
@@ -51,7 +51,7 @@ def ColRec(img, i, j):
 def ColDet(img, height, width, i, string):
     Col = []
     if(string == 'White'):
-        for j in range(width - 120, width, 1):
+        for j in range(width - 150, width, 1):
             color = ColRec(img, i, j)
             # print('[', i, ',', j, '] = ', color)
             if color == string:
@@ -60,10 +60,10 @@ def ColDet(img, height, width, i, string):
                 Col.append(temp)
         return Col
     elif(string == 'Green'):
-        for j in range(0, width - 180, 1):
+        for j in range(0, width - 170, 1):
             color = ColRec(img, i, j)
             # print('[', i, ',', j, '] = ', color)
-            if color == string:
+            if (color == string) and j < 60:
             #sucess to find the white color
                 temp = [i, j]
                 Col.append(temp)
@@ -78,66 +78,40 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
     Line2_temp = []
     i_min = max(Wi_min, Gi_min)
     i_max = min(Wi_max, Gi_max)
+    
+    start = time.time()
     for i in range(i_min, i_max):
         Line1_temp = ColDet(img, height, width, i, string1)
         Line2_temp = ColDet(img, height, width, i, string2)
         L1 = Lineform(Line1_temp, L1, i, i, string1, img, height, width)
         L2 = Lineform(Line2_temp, L2, i, i, string2, img, height, width)
-        print("L1 = ", L1, "\t\tL2 = ", L2)
+        
         x_temp = MidCal(L1[0], L2[0])
         temp = [x_temp, i]
+        
         L.append(temp)
-    if(i_min == Gi_min): 
-        # The lower bound of Whiteline is smaller then the Greenline
-        for h in range (Wi_min, Gi_min):
-            Line1_temp = ColDet(img, height, width, h, string1)
-            L1 = Lineform(Line1_temp, L1, h, h, string1, img, height, width)
-            L2 = 0
-            x_temp = MidCal(L1[0], L2)
-            temp = [x_temp, h]
-            L.append(temp)
-    elif(i_min == Wi_min):
-        for h in range (Gi_min, Wi_min):
-            Line2_temp = ColDet(img, height, width, h, string2)
-            L2 = Lineform(Line2_temp, L2, h, h, string2, img, height, width)
-            L1 = 319
-            x_temp = MidCal(L1, L2[0])
-            temp = [x_temp, h]
-            L.append(temp)
-    if(i_max == Gi_max): 
-        # The Greenline is shorter then the Whiteline
-        for k in range (Gi_max, Wi_max):
-            Line1_temp = ColDet(img, height, width, k, string1)
-            L1 = Lineform(Line1_temp, L1, k, k, string1, img, height, width)
-            L2 = 0
-            x_temp = MidCal(L1[0], L2)
-            temp = [x_temp, k]
-            L.append(temp)
-    elif(i_max == Wi_max):
-        for k in range (Wi_max, Gi_max):
-            Line2_temp = ColDet(img, height, width, k, string2)
-            L2 = Lineform(Line2_temp, L2, k, k, string2, img, height, width)
-            L1 = 319
-            x_temp = MidCal(L1, L2[0])
-            temp = [x_temp, k]
-            L.append(temp)
+    end = time.time()
+    print("\tLineForm part1: ", end-start)
+
+    start = time.time()
+    L = UpperLine(img, height, width, L, L1, L2, Line1_temp, Line2_temp, string1, string2, i_min, Gi_min, Wi_min)
+    L = BottomLine(img, height, width, L, L1, L2, Line1_temp, Line2_temp, string1, string2, i_max, Gi_max, Wi_max)
+    end = time.time()
+    print("\tLineForm part1: ", end-start)
+
     return L
 
 
 def Lineform(Line_temp, L, i, j, string, img, height, width):
-    print('i = ', i, ', string = ', string)
     LL = []
     LL.append(L)
     if((Line_temp == [])or(Line_temp == None)):
-        print(type(LL), "\tL = ", L, "\tLL = ", LL)
         pos = LL[-1]
-        # print("type(pos) = ", type(pos), "\tpos = ", pos, "(type(pos) == 'list')", isinstance(pos, list))
         if isinstance(pos, list):
             # print("... pos is list!! ...")
             num3 = pos[0]
             temp = [num3, j]
-        else:
-            pos = LL[0]
+        elif isinstance(pos, int):
             temp = [pos, j]
         return temp
     elif((Line_temp != None)or(Line_temp != [])):
@@ -146,14 +120,57 @@ def Lineform(Line_temp, L, i, j, string, img, height, width):
         num1 = a[1]
         b = Line_temp[l-1]
         num2 = b[1]
+        # print("i = ", i, "num1 = ", num1, "\tnum2 = ", num2, "\tcolor = ", string)
         # we will choose the point on the most right
         if(num2 != None) and (string == 'Green'):
-            temp = [num2, j]
+            temp = [num1, j]
             # print('\tgreen\ttemp = ', temp)
         elif(num1 != None) and (string == 'White'):
             temp = [num1, j]
             # print('\t', string, '\ttemp = ', temp)
         return temp
+
+
+def UpperLine(img, height, width, L, L1, L2, Line1_temp, Line2_temp, string1, string2, i_min, Gi_min, Wi_min):
+    if(i_min == Gi_min): 
+        # The lower bound of Whiteline is smaller then the Greenline
+        for h in range (Wi_min, Gi_min):
+            Line1_temp = ColDet(img, height, width, h, string1)
+            L1 = Lineform(Line1_temp, L1, h, h, string1, img, height, width)
+            L2 = L1[0] - 220
+            x_temp = MidCal(L1[0], L2)
+            temp = [x_temp, h]
+            L.append(temp)
+    elif(i_min == Wi_min):
+        for h in range (Gi_min, Wi_min):
+            Line2_temp = ColDet(img, height, width, h, string2)
+            L2 = Lineform(Line2_temp, L2, h, h, string2, img, height, width)
+            L1 = L2[0] + 220
+            x_temp = MidCal(L1, L2[0])
+            temp = [x_temp, h]
+            L.append(temp)
+    return L
+
+
+def BottomLine(img, height, width, L, L1, L2, Line1_temp, Line2_temp, string1, string2, i_max, Gi_max, Wi_max):
+    if(i_max == Gi_max): 
+        # The lower bound of Whiteline is smaller then the Greenline
+        for h in range (Gi_max, Wi_max):
+            Line1_temp = ColDet(img, height, width, h, string1)
+            L1 = Lineform(Line1_temp, L1, h, h, string1, img, height, width)
+            L2 = 0
+            x_temp = MidCal(L1[0], L2)
+            temp = [x_temp, h]
+            L.append(temp)
+    elif(i_max == Wi_max):
+        for h in range (Wi_max, Gi_max):
+            Line2_temp = ColDet(img, height, width, h, string2)
+            L2 = Lineform(Line2_temp, L2, h, h, string2, img, height, width)
+            L1 = 319
+            x_temp = MidCal(L1, L2[0])
+            temp = [x_temp, h]
+            L.append(temp)
+    return L
 
 
 def MidCal(a, b):
@@ -174,7 +191,7 @@ def LineorCurve(Line):
         Pnt1 = Line[0]
         Pnt2 = Line[len(Line) - 1]
         slope = (Pnt2[0] - Pnt1[0])/(Pnt2[1] - Pnt1[1])
-        print(Pnt1, '\t', Pnt2)
+
         const1 = Pnt1[0] - (Pnt1[1] * slope)
         const2 = Pnt2[0] - (Pnt2[1] * slope)
         const = (const1 + const2)/2
@@ -235,49 +252,22 @@ def LineSlope(Line, LoC):
     idx = 0
     l = len(Line) - 1
 
-    idx1 = (len(Line))/3
-    idx1 = int(idx1)
-
-    idx2 = (len(Line))/3
-    idx2 = 2 * idx2
+    idx2 = (len(Line))/4
+    idx2 = 3 * idx2
     idx2 = int(idx2)
-
-    if(LoC == 0):
-    # if the line is a straight line
-    # then we need to find three different pairs of points
-    # and their corresponding slope
-        slope1 = CalSlope(Line, l, idx2)
-        slope2 = CalSlope(Line, idx2, idx1)
-        slope3 = CalSlope(Line, idx1, idx)
-        slope = (slope1+slope2+slope3) / 3
-        return slope
-
-    elif(LoC == 1):
-    # if the line is a curve
-    # then we only need to calculate the slope of the pairs at bottom
-        slope = CalSlope(Line, l, idx1)
-        # the slope that the robot uses to test, how much should the robot turn
-        return slope
-    elif(LoC == 2):
+    
+    if(LoC == 2):
     # if the robot cannot find a line
     # then it will give the value of LoC
     # so that the robot will not give back an Error
-        return LoC
-
-    # if slope > 0.1835:#[!!!]MIGHT NOT CORRECT
-    # # it should be 0.8015
-    # # the PERSPECTIVE angle 0.5
-    # #           plus
-    # # DIFFERENCE between pi and max radians of turtlebot Burger 0.3015
-    # # HOWEVER
-    # # we still need to concider about the extra slope
-    # # caused by the distance of the camera 0.2
-    #     slope = slope - 0.1565
-    # elif (slope <= 0.1835) and (slope > 0.0615):
-    #     slope = 0.0
-    # elif (slope < 0.0615):
-    #     slope = slope - 0.0615
-    # return slope
+        slope = 0.00
+        return slope
+    
+    # if the line is a straight line or a curve line
+    # then we need to find three different pairs of points
+    # and their corresponding slope
+    slope = CalSlope(Line, l, idx2)
+    return slope
 
 
 def CalSlope(Line, idx1, idx2):

@@ -50,12 +50,6 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
             return i
 
 
-def DeterHeight2(i_min, i_max):
-    if (i_min == 239) and (i_max == 0):
-        i_max = i_min
-    return i_min, i_max
-
-
 def DrawTangent(Line, img, string):
     l = len(Line) - 1
     idx1 = (len(Line))/6
@@ -101,20 +95,27 @@ def DrawTangent(Line, img, string):
             cv2.circle(img, (x, y), 1, (0, 175, 175), 2)
 
 
+def DeterHeight2(i_min, i_max):
+    if (i_min == 239) and (i_max == 0):
+        i_max = 120
+        i_min = 120
+    return i_min, i_max
+
+
 def main():
 
-    PNGList = ["001.png", "002.png", "003.png", "004.png", ]
-            #    "005.png", 
-            #    "006.png", "007.png", "008.png", "009.png", "010.png", 
-            #    "011.png", "012.png", "013.png", "014.png", "015.png", 
+    PNGList = ["001.png", "002.png", "003.png", "004.png", "005.png", 
+               "006.png", "007.png", "008.png", "009.png", "010.png", 
+               "011.png", "012.png", ]
+            #    "013.png", "014.png", "015.png", 
             #    "016.png", "017.png", "018.png", "019.png", "020.png", ]
             #   ["021.png", "022.png", "023.png", "024.png", "025.png", 
             #    "026.png", "027.png", "028.png", "029.png", "030.png", 
             #    "031.png", "032.png", "033.png", "034.png", "035.png", ]
     n = len(PNGList)
     # for i in range(0, n-1):
-    start = time.time()
-    i = 3 # 14
+    
+    i = 4 # 14
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -126,10 +127,7 @@ def main():
 
     i_bot = height - 5
     i_mid = height - 60
-    # height = height-1
-    # width = width-1
     width_n = width - 250
-    # print('width_n = ', width_n)
 
     out_pnt = np.float32([[0, 0],
                         [0, height-1],
@@ -158,15 +156,19 @@ def main():
     # print(cd.ColRec(img, A[1], A[0]))
     # cv2.circle(img, (A[0], A[1]), 5, (255, 0, 0), 1)
 
-    # print(cd.ColDet(img, height, width, 191, "Green"))
+    # C = cd.ColDet(img, height, width, 103, "White")
+    # print(C)
+    # for i in range(len(C)):
+    #     Pnt = C[i]
+    #     cv2.circle(img, (Pnt[1], Pnt[0]), 1, (255, 0, 0), 3)
 
-    Line = cd.LineForm(img, height, width, "White", "Green", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
-    # GLine = cd.LineForm(img, height, width, "Green" or "Yellow", minhigt, maxhigt)
-    # GLine = cd.checkagain(img, GLine, height, width, "Green")
-    # GLine = cd.ReformLine(GLine, height)
-    # Line = cd.ActionPath(img, height, width, minhigt, maxhigt, "White", "Green" or "Yellow")
-    # Line = ReformLine(Line, height)
-    # checkagain(img, WLine, height, width, Rstring)
+    start = time.time()
+
+    Line = cd.LineForm(img, height, width, "White", "Green" or "Yellow", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
+
+    end = time.time()
+    print(end-start)
+
     if((Line != 0)and(Line != 1)):
         for i in range(len(Line)):
             Pnt = Line[i]
@@ -174,12 +176,15 @@ def main():
             # Pnt2 = GLine[i]
             # print('i = ', i, '; Pos = ', Pnt)
             cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
+            cv2.circle(img, (101, 238), 5, (255, 255, 0), 1)
+            cv2.circle(img, (99, 179), 5, (255, 255, 0), 1)
+
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
-    # LoC = cd.LineorCurve(Line)
-    # print('LoC = ' , LoC)
-    # slope = cd.LineSlope(Line, LoC)
+    LoC = cd.LineorCurve(Line)
+    print('LoC = ' , LoC)
+    slope = cd.LineSlope(Line, LoC)
     # if(LoC == 0):
     #     # DrawTangent(WLine, img, "bot")
     #     # DrawTangent(WLine, img, "line")
@@ -187,7 +192,7 @@ def main():
     # elif(LoC == 1):
     #     # DrawTangent(WLine, img, "bot")
     #     # DrawTangent(WLine, img, "line")
-    #     print('slope = ', slope)
+    print('slope = ', slope)
     
 
     end = time.time()
@@ -196,7 +201,7 @@ def main():
     # cv2.imshow("IMG_CV", img_cv)
     cv2.imshow("IMG", img)
     # cv2.imshow("GIMG", Gimg)
-    cv2.imshow("IMG_HSV", img_hsv)
+    # cv2.imshow("IMG_HSV", img_hsv)
     cv2.waitKey(0)
     
 
