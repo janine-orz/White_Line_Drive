@@ -35,18 +35,24 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
         # print("string2 = ", string2)
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
+    
+    ############################################################
+    # still need to fix the output min and max height or width #
+    ############################################################
+
         J = (cd.ColDet(img, height, width, i, string1))
         # print('J = ', J)
         U = ((J == None)or(J == []))
         # print(string1, 'at', i, 'cd.ColDet(img,', height, ',', width, ',', i, ',', string1, '):', U)
-        if((J == None)or(J == [])):
+        if U:
             idx1 = i
             # print('\t i = ', i, '\tidx1 == height-1:', idx1 == height-1)
             if((idx1 == height-1)and(string2 == 'min')):
-                return i
+                return 120
             elif((idx1 == 0)and(string2 == 'max')):
-                return i
+                return 120
         else:
+            print(J)
             return i
 
 
@@ -104,18 +110,24 @@ def DeterHeight2(i_min, i_max):
 
 def main():
 
+                #  0          1          2          3          4
     PNGList = ["001.png", "002.png", "003.png", "004.png", "005.png", 
+                #  5          6          7          8          9
                "006.png", "007.png", "008.png", "009.png", "010.png", 
-               "011.png", "012.png", ]
-            #    "013.png", "014.png", "015.png", 
-            #    "016.png", "017.png", "018.png", "019.png", "020.png", ]
-            #   ["021.png", "022.png", "023.png", "024.png", "025.png", 
-            #    "026.png", "027.png", "028.png", "029.png", "030.png", 
-            #    "031.png", "032.png", "033.png", "034.png", "035.png", ]
+                #  10         11         12         13         14
+               "011.png", "012.png", "013.png", "014.png", "015.png", 
+                #  15         16         17         18         19
+               "016.png", "017.png", "018.png", "019.png", "020.png", 
+                #  20         21         22         23         24
+               "021.png", "022.png", "023.png", "024.png", "025.png", 
+                #  25         26         27         28         29
+               "026.png", "027.png", "028.png", "029.png", "030.png", 
+                #  30         31         32         33         34
+               "031.png", "032.png", "033.png", "034.png", "035.png", ]
     n = len(PNGList)
     # for i in range(0, n-1):
     
-    i = 4 # 14
+    i = 18 # 14
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -143,16 +155,21 @@ def main():
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     
     height, width, _ = img.shape
+
+
     Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")
     Gminhigt = DeterHeight1(img, height, width, 0, height, "Green", "min")
     Wmaxhigt = DeterHeight1(img, height, width, height-1, -1, "White", "max")
     Gmaxhigt = DeterHeight1(img, height, width, height-1, -1, "Green", "max")
-    Wminhigt, Wmaxhigt = DeterHeight2(Wminhigt, Wmaxhigt)
-    Gminhigt, Gmaxhigt = DeterHeight2(Gminhigt, Gmaxhigt)
     print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
     print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
 
-    # A = [24, 103]
+    # Wminhigt, Wmaxhigt = DeterHeight2(Wminhigt, Wmaxhigt)
+    # Gminhigt, Gmaxhigt = DeterHeight2(Gminhigt, Gmaxhigt)
+    # print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
+    # print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
+
+    # A = cd.ColDet(img, height, width, 52, "White")
     # print(cd.ColRec(img, A[1], A[0]))
     # cv2.circle(img, (A[0], A[1]), 5, (255, 0, 0), 1)
 
@@ -176,27 +193,23 @@ def main():
             # Pnt2 = GLine[i]
             # print('i = ', i, '; Pos = ', Pnt)
             cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
-            cv2.circle(img, (101, 238), 5, (255, 255, 0), 1)
-            cv2.circle(img, (99, 179), 5, (255, 255, 0), 1)
-
+            # cv2.circle(img, (101, 238), 5, (255, 255, 0), 1)
+            # cv2.circle(img, (99, 179), 5, (255, 255, 0), 1)
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
-    LoC = cd.LineorCurve(Line)
-    print('LoC = ' , LoC)
-    slope = cd.LineSlope(Line, LoC)
-    # if(LoC == 0):
-    #     # DrawTangent(WLine, img, "bot")
-    #     # DrawTangent(WLine, img, "line")
-    #     print('slope = ', slope)
-    # elif(LoC == 1):
-    #     # DrawTangent(WLine, img, "bot")
-    #     # DrawTangent(WLine, img, "line")
-    print('slope = ', slope)
+    # LoC = cd.LineorCurve(Line)
+    # print('LoC = ' , LoC)
+    # slope = cd.LineSlope(Line, LoC)
+    # # if(LoC == 0):
+    # #     # DrawTangent(WLine, img, "bot")
+    # #     # DrawTangent(WLine, img, "line")
+    # #     print('slope = ', slope)
+    # # elif(LoC == 1):
+    # #     # DrawTangent(WLine, img, "bot")
+    # #     # DrawTangent(WLine, img, "line")
+    # print('slope = ', slope)
     
-
-    end = time.time()
-    print(end-start)
 
     # cv2.imshow("IMG_CV", img_cv)
     cv2.imshow("IMG", img)
