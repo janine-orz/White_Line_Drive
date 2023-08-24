@@ -8,7 +8,7 @@ from sensor_msgs.msg import Image
 
 # TO DO: write a programm so that the robot can follow one line wenn there is no green line on the left
 
-def ColRec(img, i, j):
+def ColRec(img, i, j, val):
     color = "Undefined"
     pixel_center = []
     pixel_center = img[i, j]
@@ -17,7 +17,7 @@ def ColRec(img, i, j):
     r_val = pixel_center[2]
     # print("\tB = ", b_val, "\tG = ", g_val, "\tR = ", r_val)
 
-    if b_val > 170 and g_val > 170 and r_val > 170:
+    if b_val > val and g_val > val and r_val > val:
         color = "White"
     elif b_val < 90 and g_val < 110 and r_val < 90:
         color = "Black"
@@ -27,13 +27,13 @@ def ColRec(img, i, j):
         h_val = pixel_center[0]
         s_val = pixel_center[1]
         v_val = pixel_center[2]
-        # print("H = ", h_val)
-        if s_val >= 90 and v_val >= 90:
+        # print("[", j, ", ", i, "]H = ", h_val, "S = ", s_val, "V = ", v_val)
+        if s_val >= 100 and v_val >= 100:
             if h_val < 5:
                 color = "Red"
-            elif h_val < 22:
+            elif h_val < 10:
                 color = "Orange"
-            elif h_val < 33:
+            elif h_val < 25:
                 color = "Yellow"
             elif h_val < 75:
                 color = "Green"
@@ -47,36 +47,39 @@ def ColRec(img, i, j):
 
 
 # mit i = height, j = width
-def ColDet(img, height, width, i, string):
+def ColDet(img, height, width, i, val, string):
     Col = []
     if(string == 'White'):
         temp = 0
+        hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         for j in range(width - 150, width, 1):
-            color = ColRec(img, i, j)
+            color = ColRec(img, i, j, val)
             if color == string:
             #sucess to find the white color
-                color_a = ColRec(img, i, j-1)
-                if (temp == 0) or (color_a != string):
+                if (temp == 0):
                     temp = j
-                elif (j > temp) and (abs(temp-j) <= 20): 
+                elif (j > temp) and (abs(temp-j) <= 15) and (color_a == string): 
                     temp = j
                 if(temp != 0):
                     temp_pos = [temp, i]
                     Col = temp_pos
+            color_a = color
+            j_temp = j
     elif(string == 'Green'):
         temp = 0
         for j in range(0, width - 170, 1):
-            color = ColRec(img, i, j)
+            color = ColRec(img, i, j, val)
             if color == string:
             #sucess to find the white color
-                color_a = ColRec(img, i, j-1)
-                if (temp == 0) or (color_a != string):
+                # print("color = ", color, "\tposition = [", j, ",", i, "]", "\t bgr = ", img[i, j], "\t hsv = ", hsv_img[i, j])
+                if (temp == 0):
                     temp = j
-                elif (j > temp) and (abs(temp-j) <= 20): 
+                elif (j > temp) and (abs(temp-j) <= 15) and (color_a == string): 
                     temp = j
                 if(temp != 0):
                     temp_pos = [temp, i]
                     Col = temp_pos
+            color_a = color
     return Col
 
 def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_max):
@@ -91,14 +94,14 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
 
     for i in range(i_min, i_max):
         # print("==========white line==========")
-        L1 = ColDet(img, height, width, i, string1)
-        L1 = IfLineBreak(WL, L1, i, i, string1, img, height, width)
+        L1 = ColDet(img, height, width, i, 180, string1)
+        L1 = IfLineBreak(WL, L1, i, i, string1, img, height, width, -1)
         WL.append(L1)
         # print("L1 = ", L1)
         
         # print("==========green line==========")
-        L2 = ColDet(img, height, width, i, string2)
-        L2 = IfLineBreak(GL, L2, i, i, string2, img, height, width)
+        L2 = ColDet(img, height, width, i, 180, string2)
+        L2 = IfLineBreak(GL, L2, i, i, string2, img, height, width, -1)
         GL.append(L2)
         # print("L1 = ", L1, '\tL1 bgr_value: ', img[L1[1], L1[0]], "\nL2 = ", L2, '\tL2 hsv_value: ', hsv_img[L2[1], L2[0]])
 
@@ -107,26 +110,34 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
         
         L.append(temp)
 
-    start = time.time()
-    L = UpperLine(img, height, width, L, string1, string2, i_min, Gi_min, Wi_min)
-    L = BottomLine(img, height, width, L, string1, string2, i_max, Gi_max, Wi_max)
-    end = time.time()
-    print("\tLineForm part1: ", end-start)
+    print("============ UpperLine() ============")
+    L = UpperLine(img, height, width, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min)
+    print("============ BottomLine() ============")
+    L = BottomLine(img, height, width, L, WL, GL, string1, string2, i_max, Gi_max, Wi_max)
+    # print("To fill the upper and bottom part of the line: ", end-start)
 
     return L
 
 
-def IfLineBreak(L, Li, i, j, string, img, height, width):
+def IfLineBreak(L, Li, i, j, string, img, height, width, rr):
     if((Li == [])or(Li == None)):
         # start = time.time()
-        
-        while (Li == []):
-            i = i-1
-            Li = L[-1]
-            print("L[-1] = ", L[-1], "L[-2] = ", L[-2])
-        pos = Li[0]
-        temp = [pos, j]
-        
+        # print("L = ", L)
+        if(L == []):
+            L.append([0, i])
+        if(rr == 0):
+            while (Li == []):
+                i = i-1
+                Li = L[0]
+                # print("L = ", L)
+            pos = Li[0]
+            temp = [pos, j]
+        elif(rr == -1):
+            while (Li == []):
+                i = i-1
+                Li = L[-1]
+            pos = Li[0]
+            temp = [pos, j]
         # while (Li == []):
         #     i = i-1
         #     Li = ColDet(img, height, width, i, string)
@@ -143,45 +154,47 @@ def IfLineBreak(L, Li, i, j, string, img, height, width):
         return Li
 
 
-def UpperLine(img, height, width, L, string1, string2, i_min, Gi_min, Wi_min):
-    WL = []
-    GL = []
+def UpperLine(img, height, width, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min):
     if(i_min == Gi_min): 
         # The lower bound of Whiteline is smaller then the Greenline
-        for h in range (Wi_min, Gi_min):
-            L1 = ColDet(img, height, width, h, string1)
-            L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width)
+        for h in range (Gi_min, Wi_min, -1):
+            L1 = ColDet(img, height, width, h, 165, string1)
+            # print("L1 = ", L1)
+            L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width, 0)
+            WL.insert(0, L1)
             L2 = L1[0] - 220
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, h]
-            L.append(temp)
+            L.insert(0, temp)
     elif(i_min == Wi_min):
-        for h in range (Gi_min, Wi_min):
-            L2 = ColDet(img, height, width, h, string2)
-            L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width)
+        for h in range (Wi_min, Gi_min, -1):
+            L2 = ColDet(img, height, width, h, 165, string2)
+            L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width, 0)
+            GL.insert(0, L2)
             L1 = L2[0] + 220
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, h]
-            L.append(temp)
+            L.insert(0, temp)
     return L
 
 
-def BottomLine(img, height, width, L, string1, string2, i_max, Gi_max, Wi_max):
-    WL = []
-    GL = []
+def BottomLine(img, height, width, L, WL, GL, string1, string2, i_max, Gi_max, Wi_max):
     if(i_max == Gi_max): 
         # The lower bound of Whiteline is smaller then the Greenline
         for h in range (Gi_max, Wi_max):
-            L1= ColDet(img, height, width, h, string1)
-            L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width)
+            L1= ColDet(img, height, width, h, 165, string1)
+            L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width, -1)
+            # print("L1 = ", L1)
+            WL.append(L1)
             L2 = 0
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, h]
             L.append(temp)
     elif(i_max == Wi_max):
         for h in range (Wi_max, Gi_max):
-            L2 = ColDet(img, height, width, h, string2)
-            L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width)
+            L2 = ColDet(img, height, width, h, 165, string2)
+            L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width, -1)
+            GL.append(L2)
             L1 = 319
             x_temp = MidCal(L1, L2[0])
             temp = [x_temp, h]
@@ -266,7 +279,7 @@ def LoCCal(Pnt3, slope, const):
 def LineSlope(Line, LoC):
     slope = 0.0
     idx = 0
-    l = len(Line) - 1
+    l = len(Line)-1
 
     idx2 = (len(Line))/6
     idx2 = 5 * idx2
