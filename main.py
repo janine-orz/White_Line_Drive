@@ -32,41 +32,35 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     elif(idx1 > idx2):
         a = -1
     for i in range(idx1, idx2, a):
-        # print("string2 = ", string2)
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
-    
-                    ##################
-                    # Deal in main() #
-                    ##################
-
-        J = (cd.ColDet(img, height, width, i, 165, string1))
-        # print('J = ', J)
-        U = ((J == None)or(J == []))
-        # print(string1, 'at', i, 'cd.ColDet(img,', height, ',', width, ',', i, ',', string1, '):', U)
-        if U:
+        
+        BGR = [160, 160, 150]
+        J = (cd.ColDet(img, height, width, i, BGR, string1))
+        U = (J[0] == -100)
+        # print('i = ', i, '\tJ = ', J, '\tU = ', U, '\tcolor: ', string1)
+        if U == True:
             idx1 = i
             # print('\t i = ', i, '\tidx1 == height-1:', idx1 == height-1)
             if((idx1 == height-1)and(string2 == 'min')):
                 return 0
             elif((idx1 == 0)and(string2 == 'max')):
                 return i
-        else:
-            print(J)
+        elif U == False:
             return i
 
 
 def DrawTangent(Line, img, slope):
     
     l = len(Line)
-    idx1 = (len(Line))/4
-    idx1 = 3 * idx1
+    idx1 = (l)/5
+    idx1 = 4 * idx1
     idx1 = int(idx1)
 
     Pnt0 = Line[idx1]
-    cv2.circle(img, (Pnt0[0], Pnt0[1]), 1, (255, 0, 255), 5)
-    Pnt1 = Line[-1]
-    cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (255, 0, 255), 5)
+    cv2.circle(img, (Pnt0[0], Pnt0[1]), 2, (255, 0, 255), 5)
+    Pnt1 = Line[l-1]
+    cv2.circle(img, (Pnt1[0], Pnt1[1]), 2, (255, 0, 255), 5)
     const = Pnt1[0] - (Pnt1[1] * slope)
     for i in range(1, 60, 1):
         Pnt = Line[l-i]
@@ -113,7 +107,8 @@ def main():
     # 028.png ~ 030.png : no reflection
     # 031.png ~ 042.png : reflection between white line and green line
 
-    i = 9 # 14
+    i = input('Please give the number of png: ')
+    i = int(i)# 19
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -124,7 +119,7 @@ def main():
     print('width = ', width)
 
     i_bot = height - 5
-    i_mid = height - 60
+    i_mid = height - 50
     width_n = width - 250
 
     out_pnt = np.float32([[0, 0],
@@ -142,10 +137,13 @@ def main():
     
     height, width, _ = img.shape
 
-    Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")
+    # print(cd.ColDet(img, height, width, 0, 165, 'Green'))
+
+    Wminhigt = DeterHeight1(img, height, width, 0, height, "White", "min")    
     Gminhigt = DeterHeight1(img, height, width, 0, height, "Green" or "Yellow", "min")
     Wmaxhigt = DeterHeight1(img, height, width, height-1, -1, "White", "max")
     Gmaxhigt = DeterHeight1(img, height, width, height-1, -1, "Green" or "Yellow", "max")
+
     if(Wminhigt == Wmaxhigt):
         Wminhigt = Gminhigt
         Wmaxhigt = Gminhigt
@@ -160,10 +158,13 @@ def main():
     # print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
     # print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
 
-    # A = cd.ColDet(img, height, width, 175, 60, "White")
-    # print(A)
-    # print(cd.ColRec(img, A[1], A[0]))
-    # cv2.circle(img, (A[0], A[1]), 5, (255, 0, 255), 1)
+    # start = time.time()
+    # A = cd.ColDet(img, height, width, 116, 170, "White")
+    # print('White Line : ', A)
+    # B = cd.ColDet(img, height, width, 116, 170, "Green" or "Yellow")
+    # print('Green Line : ', B)
+    # end = time.time()
+    # print("to calculate min, max heigt: ", end-start)
 
     # C = cd.ColDet(img, height, width, 103, "White")
     # print(C)
@@ -178,21 +179,29 @@ def main():
     end = time.time()
     print(end-start)
 
-    if((Line != 0)and(Line != 1)):
-        for i in range(len(Line)):
-            Pnt = Line[i]
-            # Pnt1 = WLine[i]
-            # Pnt2 = GLine[i]
-            # print('i = ', i, '; Pos = ', Pnt)
-            cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
+    # print(Line, "\tlen(Line)", len(Line))
+
+    for i in range (len(Line)):
+        Pnt = Line[i]
+        cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
+    # for i in range max(Wmaxhigt, Gmaxhigt):
+    #     if(np.all(Line[i][0] == -100)):
+    #     print("type of Line : ", type(Line), "len(Line) = ", len(Line))
+    #     for i in range(len(Line)):
+    #         Pnt = Line[i]
+    #         # Pnt1 = WLine[i]
+    #         # Pnt2 = GLine[i]
+    #         print('i = ', i, '; Pos = ', Pnt)
+    #         cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
             # cv2.circle(img, (101, 238), 5, (255, 255, 0), 1)
             # cv2.circle(img, (99, 179), 5, (255, 255, 0), 1)
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
     LoC = cd.LineorCurve(Line)
+    print("-------------- LoC = ", LoC, " --------------")
     slope = cd.LineSlope(Line, LoC)
-    print("\n------------ slope = ", slope, " ------------\n")
+    print("------------ slope = ", slope, " ------------")
     DrawTangent(Line, img, slope)
 
     # LoC = cd.LineorCurve(Line)
