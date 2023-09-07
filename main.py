@@ -35,7 +35,7 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
         
-        BGR = [160, 160, 150]
+        BGR = [170, 170, 160]
         J = (cd.ColDet(img, height, width, i, BGR, string1))
         U = (J[0] == -100)
         # print('i = ', i, '\tJ = ', J, '\tU = ', U, '\tcolor: ', string1)
@@ -51,10 +51,10 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
 
 
 def DrawTangent(Line, img, slope):
-    
     l = len(Line)
-    idx1 = (l)/5
-    idx1 = 4 * idx1
+    print("len(Line) = ", len(Line))
+    idx1 = (len(Line))/5
+    idx1 = 1 * idx1
     idx1 = int(idx1)
 
     Pnt0 = Line[idx1]
@@ -62,7 +62,7 @@ def DrawTangent(Line, img, slope):
     Pnt1 = Line[l-1]
     cv2.circle(img, (Pnt1[0], Pnt1[1]), 2, (255, 0, 255), 5)
     const = Pnt1[0] - (Pnt1[1] * slope)
-    for i in range(1, 60, 1):
+    for i in range(1, (l - idx1), 1):
         Pnt = Line[l-i]
         # print(Pnt)
         y = Pnt[1]
@@ -118,9 +118,8 @@ def main():
     print('height = ', height)
     print('width = ', width)
 
-    i_bot = height - 5
-    i_mid = height - 50
-    width_n = width - 250
+    i_bot = height - 2
+    i_mid = height - 30
 
     out_pnt = np.float32([[0, 0],
                         [0, height-1],
@@ -153,31 +152,12 @@ def main():
     print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
     print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
 
-    # Wminhigt, Wmaxhigt = DeterHeight2(Wminhigt, Wmaxhigt)
-    # Gminhigt, Gmaxhigt = DeterHeight2(Gminhigt, Gmaxhigt)
-    # print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
-    # print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
-
-    # start = time.time()
-    # A = cd.ColDet(img, height, width, 116, 170, "White")
-    # print('White Line : ', A)
-    # B = cd.ColDet(img, height, width, 116, 170, "Green" or "Yellow")
-    # print('Green Line : ', B)
-    # end = time.time()
-    # print("to calculate min, max heigt: ", end-start)
-
-    # C = cd.ColDet(img, height, width, 103, "White")
-    # print(C)
-    # for i in range(len(C)):
-    #     Pnt = C[i]
-    #     cv2.circle(img, (Pnt[1], Pnt[0]), 1, (255, 0, 0), 3)
-
     start = time.time()
 
-    Line = cd.LineForm(img, height, width, "White", "Green" or "Yellow", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
+    Line = cd.LineForm(img, height, width, "White", "Green" or "Yellow", Wminhigt, Wmaxhigt-100, Gminhigt, Gmaxhigt-100)
 
     end = time.time()
-    print(end-start)
+    print("Time for cd.LineForm() : ", end-start)
 
     # print(Line, "\tlen(Line)", len(Line))
 
@@ -198,11 +178,15 @@ def main():
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
-    LoC = cd.LineorCurve(Line)
+    LoC = cd.LineorCurve(Line, img)
     print("-------------- LoC = ", LoC, " --------------")
-    slope = cd.LineSlope(Line, LoC)
-    print("------------ slope = ", slope, " ------------")
-    DrawTangent(Line, img, slope)
+    slope_act = input('Please input the actual slope: ')
+    slope_act = float(slope_act)
+    slope_new = cd.LineSlope(Line, LoC)
+    print("------------ slope_new = ", slope_new, " ------------")
+    slope_do = slope_new - slope_act
+    print("------------ slope_do = ", slope_do, " ------------")
+    DrawTangent(Line, img, slope_do)
 
     # LoC = cd.LineorCurve(Line)
     # print('LoC = ' , LoC)

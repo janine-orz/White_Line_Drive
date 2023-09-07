@@ -45,39 +45,61 @@ def ColRec(img, i, j, BGR):
     return color
 
 
+def Count(img, height, width, i, j, BGR, string):
+    count = 0
+    temp = j
+    color = "Undefined"
+    color_a = "Undefined"
+
+    if(string == 'White'):
+        
+        for m in range(j, width - 1, 1):
+            color = ColRec(img, i, m, BGR)
+            if (color == string):
+                temp = m
+                count = count + 1
+            else:
+                return count
+
+
 # mit i = height, j = width
 def ColDet(img, height, width, i, BGR, string): 
     Col = np.array([-100, i])
     # initialize temp, color and color_a
     color = "Undefined"
     color_a = "Undefined"
+    count = 0
+    count_a = 0
 
     if(string == 'White'):
         temp = 0
         # hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        for j in range(width - 150, width, 1):
+        for j in range(width - 120, width - 1, 1):
             color = ColRec(img, i, j, BGR)
             if color == string:
             #sucess to find the white color
-                if (temp == 0):
+                count = Count(img, height, width, i, j, BGR, string)
+                if (temp == 0) or ((count >= count_a) and abs(Col[0]-j) <= 5): 
                     temp = j
-                elif (j > temp) and (abs(temp-j) <= 15) and (color_a == string): 
+                elif (j > temp) and (abs(temp-j) <= 5) and (color_a == string): 
                     temp = j
                 if(temp != 0):
                     Col[0] = temp
+                if count > count_a:
+                    count_a = count
             color_a = color
 
     elif(string == 'Green'):
         temp = 0
         # hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        for j in range(0, width - 170, 1):
+        for j in range(0, 140, 1):
             color = ColRec(img, i, j, BGR)
             if color == string:
             #sucess to find the white color
                 # print("color = ", color, "\tposition = [", j, ",", i, "]", "\t bgr = ", img[i, j], "\t hsv = ", hsv_img[i, j])
                 if (temp == 0):
                     temp = j
-                elif (j > temp) and (abs(temp-j) <= 10) and (color_a == string): 
+                elif (j > temp) and (abs(temp-j) <= 5) and (color_a == string): 
                     temp = j
                 if(temp != 0):
                     Col[0] = temp
@@ -94,22 +116,28 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
     L = np.array([[-100, i_min]], dtype = 'int')
     WL = L
     GL = L
+    Ldiff = []
     diff_min = 105
     diff_max = 135
 
     for i in range(i_min, i_max):
-        BGR = [175, 175, 165]
+        BGR = [170, 170, 160]
         # print("==========white line==========")
         L1 = ColDet(img, height, width, i, BGR, string1)
         L1 = IfLineBreak(WL, L1, i, i, string1, img, height, width, -1)
+        # print("L1 = ", L1, '\tL1 bgr_value: ', img[L1[1], L1[0]])
         WL = np.vstack((WL, L1))            
         
         # print("==========green line==========")
+        hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         L2 = ColDet(img, height, width, i, BGR, string2)
-        L2 = IfLineBreak(GL, L2, i, i, string2, img, height, width, -1)
+        L2 = IfLineBreak(GL, L2, i, i, string2, img, height, width, -1)     
+        # print("L2 = ", L2, '\tL2 hsv_value: ', hsv_img[L2[1], L2[0]])
         GL = np.vstack((GL, L2))
-            
-        # print("L1 = ", L1, '\tL1 bgr_value: ', img[L1[1], L1[0]], "\nL2 = ", L2, '\tL2 hsv_value: ', hsv_img[L2[1], L2[0]])
+
+        diff_temp = abs(L1[0] - L2[0])
+        # print(diff_temp)
+        Ldiff.append(diff_temp)
 
         x_temp = MidCal(L1[0], L2[0])
         temp = [x_temp, i]
@@ -124,12 +152,22 @@ def LineForm(img, height, width, string1, string2, Wi_min, Wi_max, Gi_min, Gi_ma
         L = np.vstack((L, temp))
         # print(L)
 
-    BGR = [155, 145, 130]
-    print("============ UpperLine() ============")
+    BGR = [140, 140, 120]
+
+    if (Ldiff != []) and (Gi_max > 200 and Wi_max > 200):
+        Ldmin = max(Ldiff[0], Ldiff[1], Ldiff[2])
+        Ldmax = min(Ldiff[-1], Ldiff[-2], Ldiff[-3])
+        print("Ldmax-Ldmin", Ldmax-Ldmin)
+        # if (Wi_max - Wi_min) < (Gi_max - Gi_min):
+        #     string1 = "Green"
+        # elif (Wi_max - Wi_min) >= (Gi_max - Gi_min):
+        #     string1 = "White"
+        if Ldmax-Ldmin < 30:
+            L = Follow_White(img, height, width, BGR, L, WL, GL, Wi_min, Wi_max, Gi_min, Gi_max, string1, diff_min)
+            return L
+    
     L = UpperLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min, diff_min)
-    print("============ BottomLine() ============")
     L = BottomLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, i_max, Gi_max, Wi_max, diff_max)
-    # print("To fill the upper and bottom part of the line: ", end-start)
 
     return L
 
@@ -164,8 +202,35 @@ def IfLineBreak(L, Li, i, j, string, img, height, width, rr):
         return Li
 
 
+def Follow_White(img, height, width, BGR, L, WL, GL, Wi_min, Wi_max, Gi_min, Gi_max, string1, diff):
+    print("===========  Follow_White  ===========")
+    i_min = min(Wi_min, Gi_min)
+    i_max = max(Wi_max, Gi_max)
+    L = np.array([[-100, i_min]], dtype = 'int')
+    WL = L
+    GL = L
+
+    # The lower bound of Whiteline is smaller then the Greenline
+    for h in range (i_min, i_max, 1):
+        L1 = ColDet(img, height, width, h, BGR, string1)
+        # print("L1 = ", L1)
+        L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width, 0)
+        WL = np.vstack((L1, WL))
+        # print("WL = ", WL)
+        L2 = L1[0] - (2*diff)
+        x_temp = MidCal(L1[0], L2)
+        temp = [x_temp, h]
+        if(h == i_min):
+            WL = np.delete(WL, 0, 0)
+            GL = np.delete(GL, 0, 0)
+            L = np.delete(L, 0, 0)
+        L = np.vstack((L, temp))
+    return L
+
+
 def UpperLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min, diff):
-    if(i_min == Gi_min): 
+    print("===========  UpperLine  ===========")
+    if(i_min == Gi_min) and (Gi_min != 0): 
         # The lower bound of Whiteline is smaller then the Greenline
         for h in range (Gi_min, Wi_min, -1):
             L1 = ColDet(img, height, width, h, BGR, string1)
@@ -177,7 +242,7 @@ def UpperLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_mi
             x_temp = MidCal(L1[0], L2)
             temp = [x_temp, h]
             L = np.vstack((temp, L))
-    elif(i_min == Wi_min):
+    elif(i_min == Wi_min) and (Wi_min != 0):
         for h in range (Wi_min, Gi_min, -1):
             L2 = ColDet(img, height, width, h, BGR, string2)
             L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width, 0)
@@ -190,12 +255,13 @@ def UpperLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_mi
 
 
 def BottomLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, i_max, Gi_max, Wi_max, diff):
-    if(i_max == Gi_max): 
+    print("===========  BottomLine  ===========")
+    if(i_max == Gi_max) and (Gi_max != 239): 
         # The lower bound of Whiteline is smaller then the Greenline
         for h in range (Gi_max, Wi_max):
             L1= ColDet(img, height, width, h, BGR, string1)
             L1 = IfLineBreak(WL, L1, h, h, string1, img, height, width, -1)
-            # print("L1 = ", L1)
+            print("L1 = ", L1, '\tL1 bgr_value: ', img[L1[1], L1[0]])
             WL = np.vstack((WL, L1))
             L2 = L1[0] - (2*diff)
             x_temp = MidCal(L1[0], L2)
@@ -205,7 +271,7 @@ def BottomLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, i_ma
                 GL = np.delete(GL, 0, 0)
                 L = np.delete(L, 0, 0)
             L = np.vstack((L, temp))
-    elif(i_max == Wi_max):
+    elif(i_max == Wi_max) and (Wi_max != 239):
         for h in range (Wi_max, Gi_max):
             L2 = ColDet(img, height, width, h, BGR, string2)
             L2 = IfLineBreak(GL, L2, h, h, string2, img, height, width, -1)
@@ -233,7 +299,7 @@ def MidCal(a, b):
         return num2
 
 
-def LineorCurve(Line):
+def LineorCurve(Line, img):
     slope = 0.0
     LoC = 2
 
@@ -257,23 +323,29 @@ def LineorCurve(Line):
     idx3 = 4 * idx2
     pos3 = Line[idx3]
     
-    slope2 = CalSlope(Line, idx2, idx3)
+    slope2 = CalSlope(Line, idx3, idx2)
     const2_0 = pos2[0] - slope2*pos2[1]
     const2_1 = pos3[0] - slope2*pos3[1]
     const2 = (const2_0 + const2_1) / 2
     
     idx4 = (int)(len(Line)/2)
     pos4 = Line[idx4]
+    print("pos5 : [", pos4[0], pos4[1], "]")
+    cv2.circle(img, (pos4[0], pos4[1]), 1, (0, 0, 255), 5)
     
     pos5_1 = pos4[1]
     pos5_0 = (int)(slope1*pos4[1] + const1)
+    print("pos5 : [", pos5_0, pos4[1], "]")
+    cv2.circle(img, (pos5_0, pos4[1]), 1, (0, 0, 255), 5)
     
     pos6_1 = pos4[1]
     pos6_0 = (int)(slope2*pos4[1] + const2)
+    print("pos6 : [", pos6_0, pos4[1], "]")
+    cv2.circle(img, (pos6_0, pos4[1]), 1, (0, 0, 255), 5)
 
     if (abs(pos5_0-pos4[0]) < 5) and (abs(pos6_0-pos4[0]) < 5):
         LoC = 0
-    elif (abs(pos6_0 - pos5_0) < 10):
+    elif (abs(pos5_0 - pos4[0]) >= 5) or (abs(pos6_0 - pos4[0]) >= 5):
         LoC = 1
     else:
         LoC = 2
@@ -287,7 +359,7 @@ def LoCCal(Pnt3, slope, const):
     y1 = (Pnt4[1]*slope) + const
     y1 = int(y1)
     diff = Pnt4[0] - y1
-    if(abs(diff) < 5):
+    if(abs(diff) < 2):
         LoC = 0
     else:
         LoC = 1
@@ -301,7 +373,7 @@ def LineSlope(Line, LoC):
     l = len(Line)-1
 
     idx2 = (len(Line))/5
-    idx2 = 4 * idx2
+    idx2 = 1 * idx2
     idx2 = int(idx2)
     
     if(LoC == 2):
@@ -314,6 +386,7 @@ def LineSlope(Line, LoC):
     # if the line is a straight line or a curve line
     # then we need to find three different pairs of points
     # and their corresponding slope
+    print("===========  LineSLope  ===========")
     slope = CalSlope(Line, l, idx2)
     return slope
 
@@ -321,8 +394,12 @@ def LineSlope(Line, LoC):
 def CalSlope(Line, idx1, idx2):
     Pnt1 = Line[idx1] # height of Pnt1 should be lower as the one of Pnt2
     Pnt2 = Line[idx2]
-    # print('we will calculate the tangent line with Point', Pnt1, 'and Point', Pnt2)
+    # print('Point[', idx1, ']', Pnt1, 'and Point[', idx2, ']', Pnt2)
     slope = GetAngl(Pnt1, Pnt2)
+    while slope == -100:
+        idx2 = idx2 + 1
+        Pnt2 = Line[idx2]
+        slope = GetAngl(Pnt1, Pnt2)
     return slope
 
 
@@ -330,16 +407,9 @@ def GetAngl(Pnt1, Pnt2):
     angle = 0.0
     opp = Pnt2[0] - Pnt1[0]
     adj = Pnt2[1] - Pnt1[1]
+    if adj == 0:
+        return -100
     angle = np.arctan(opp / adj)
-
-    '''
-    angle = np.arctan(opp / adj)
-    print(angle)
-    Ang.append(angle)
-    add = 0
-    for i in range(len(Ang)):
-        add += abs(Ang[i])
-    angle = add / (len(Ang))'''
 
     return angle
 
