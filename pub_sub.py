@@ -40,6 +40,7 @@ class FollowLine(Node):
         self.img = 0
         self.LoC = 0
         self.slope = 0.00
+        self.slope_do = 0.00
 
     # We use this function to find out the color at each pixel_center
     def ColRec(self, img, i, j, BGR):
@@ -83,6 +84,21 @@ class FollowLine(Node):
                     color = "Red"
         return color
 
+
+    def Count(self, img, height, width, i, j, BGR, string):
+        count = 0
+        temp = j
+        color = "Undefined"
+
+        for m in range(j, width - 1, 1):
+            color = self.ColRec(img, i, m, BGR)
+            if (color == string):
+                temp = m
+                count = count + 1
+            else:
+                return count
+
+
     # We use this function to find out all white and green points of the line
     def ColDet(self, img, height, width, i, BGR, string):
         Col = np.array([-100, i])
@@ -94,23 +110,30 @@ class FollowLine(Node):
         # "White": it should the line on the right side
         if(string == 'White'):
             temp = 0
+            count = 0
+            count_a = 0
             # limit to find white color on the right side
-            for j in range(width - 150, width, 1):
+            for j in range(width - 120, width - 1, 1):
                 color = self.ColRec(img, i, j, BGR)
                 # sucess to find the white color
                 if color == string:
                     # case 1 : at the beginning
-                    if (temp == 0):
+                    count = self.Count(img, height, width, i, j, BGR, string)
+                    print("count = ", count)
+                    if (temp == 0) or ((count > count_a) and abs(Col[0]-j) <= 5):
                         temp = j
                     # case 2 : [ j > temp ]:          only take the max width
                     #          [ abs(temp-j) ]:       if width* is not far away from width
                     #          [ color_a == string ]: the pixel on the left hand side is also white
-                    elif (j > temp) and (abs(temp-j) <= 5) and (color_a == string): 
+                    elif (j < temp) and (abs(temp-j) <= 5) and (color_a == string): 
                         temp = j
                     
                     # only output the value of white point if (temp != 0)
                     if(temp != 0):
                         Col[0] = temp
+
+                    if count > count_a:
+                        count_a = count
                 # save the color of the pixel on the left hand side                    
                 color_a = color
         
@@ -118,6 +141,8 @@ class FollowLine(Node):
         # "Green": it should the line on the left side
         elif(string == 'Green'):
             temp = 0
+            count = 0
+            count_a = 0
             # limit to find white color on the left side
             for j in range(0, width - 170, 1):
                 color = self.ColRec(img, i, j, BGR)
@@ -147,13 +172,14 @@ class FollowLine(Node):
         L = np.array([[-100, i_min]], dtype = 'int')
         WL = L
         GL = L
+        Ldiff = []
         diff_min = 105
         diff_max = 135
 
 
         # the part that contain both white and green lines
         for i in range(i_min, i_max):
-            BGR = [175, 175, 165]
+            BGR = [170, 170, 160]
 
             L1 = self.ColDet(img, height, width, i, BGR, string1)
             L1 = self.IfLineBreak(WL, L1, i, i, string1, img, height, width, -1)
@@ -162,6 +188,9 @@ class FollowLine(Node):
             L2 = self.ColDet(img, height, width, i, BGR, string2)
             L2 = self.IfLineBreak(GL, L2, i, i, string2, img, height, width, -1)
             GL = np.vstack((GL, L2))
+
+            diff_temp = abs(L1[0] - L2[0])
+            Ldiff.append(diff_temp)
 
             x_temp = self.MidCal(L1[0], L2[0])
             temp = [x_temp, i]
@@ -175,10 +204,17 @@ class FollowLine(Node):
                 diff_max = L1[0] - x_temp
             L = np.vstack((L, temp))
         
-        # if((Gminhigt == Gmaxhigt)or(Wminhigt == Wmaxhigt)) and (i_min < 120):
-        #     val = 130
         
-        BGR = [155, 145, 130]
+        BGR = [150, 140, 125] # [140, 140, 120]
+
+        if (Ldiff != []) and (Gi_max > 200 and Wi_max > 200):
+            Ldmin = max(Ldiff[0], Ldiff[1], Ldiff[2])
+            Ldmax = min(Ldiff[-1], Ldiff[-2], Ldiff[-3])
+            print("Ldmax-Ldmin", Ldmax-Ldmin)
+            if Ldmax-Ldmin < 30:
+                L = self.Follow_White(img, height, width, BGR, L, WL, GL, Wi_min, Wi_max, Gi_min, Gi_max, string1, diff_min)
+                return L
+        
         L = self.UpperLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min, diff_min)
         L = self.BottomLine(img, height, width, BGR, L, WL, GL, string1, string2, i_min, i_max, Gi_max, Wi_max, diff_max)
 
@@ -220,9 +256,36 @@ class FollowLine(Node):
             return Li
 
 
+    def Follow_White(self, img, height, width, BGR, L, WL, GL, Wi_min, Wi_max, Gi_min, Gi_max, string1, diff):
+        print("=============  Follow_White()  =============")
+        i_min = min(Wi_min, Gi_min)
+        i_max = max(Wi_max, Gi_max)
+        L = np.array([[-100, i_min]], dtype = 'int')
+        WL = L
+        GL = L
+
+        # The lower bound of Whiteline is smaller then the Greenline
+        for h in range (i_min, i_max, 1):
+            L1 = self.ColDet(img, height, width, h, BGR, string1)
+            # print("L1 = ", L1)
+            L1 = self.IfLineBreak(WL, L1, h, h, string1, img, height, width, 0)
+            WL = np.vstack((L1, WL))
+            # print("WL = ", WL)
+            L2 = L1[0] - (2*diff)
+            x_temp = self.MidCal(L1[0], L2)
+            temp = [x_temp, h]
+            if(h == i_min):
+                WL = np.delete(WL, 0, 0)
+                GL = np.delete(GL, 0, 0)
+                L = np.delete(L, 0, 0)
+            L = np.vstack((L, temp))
+        return L
+
+
     def UpperLine(self, img, height, width, BGR, L, WL, GL, string1, string2, i_min, Gi_min, Wi_min, diff):
+        print("===========  UpperLine()  ===========")
         # The lower bound of Greenline is smaller then the Whiteline
-        if(i_min == Gi_min): 
+        if(i_min == Gi_min) and (Gi_min != 0): 
             for h in range (Gi_min, Wi_min, -1):
                 L1 = self.ColDet(img, height, width, h, BGR, string1)
                 L1 = self.IfLineBreak(WL, L1, h, h, string1, img, height, width, 0)
@@ -237,7 +300,7 @@ class FollowLine(Node):
                 L = np.vstack((temp, L))
         
         # The lower bound of Whiteline is smaller then the Greenline
-        elif(i_min == Wi_min):
+        elif(i_min == Wi_min) and (Wi_min != 0):
             for h in range (Wi_min, Gi_min, -1):
                 L2 = self.ColDet(img, height, width, h, BGR, string2)
                 L2 = self.IfLineBreak(GL, L2, h, h, string2, img, height, width, 0)
@@ -250,8 +313,9 @@ class FollowLine(Node):
 
 
     def BottomLine(self, img, height, width, BGR, L, WL, GL, string1, string2, i_min, i_max, Gi_max, Wi_max, diff):
+        print("===========  BottomLine()  ===========")
         # The lower bound of Whiteline is smaller then the Greenline
-        if(i_max == Gi_max): 
+        if(i_max == Gi_max) and (Gi_max != 239): 
             for h in range (Gi_max, Wi_max):
                 L1 = self.ColDet(img, height, width, h, BGR, string1)
                 L1 = self.IfLineBreak(WL, L1, h, h, string1, img, height, width, -1)
@@ -268,7 +332,7 @@ class FollowLine(Node):
                 #                             ↓
                 # ▅ ▅ ▅ ▅ ▅ ▅ ... ▅ ▅ ▅ ▅ ▅ ▅ ❑ 
                 L = np.vstack((L, temp))
-        elif(i_max == Wi_max):
+        elif(i_max == Wi_max) and (Wi_max != 239):
             for h in range (Wi_max, Gi_max):
                 L2 = self.ColDet(img, height, width, h, BGR, string2)
                 L2 = self.IfLineBreak(GL, L2, h, h, string2, img, height, width, -1)
@@ -309,6 +373,7 @@ class FollowLine(Node):
 
         idx0 = len(Line)-1
         pos0 = Line[idx0]
+
         idx1 = 0
         pos1 = Line[idx1]
         while(pos1[0] == -100):
@@ -322,26 +387,29 @@ class FollowLine(Node):
 
         idx2 = (int)(len(Line)/5)
         pos2 = Line[idx2]
+
         idx3 = 4 * idx2
         pos3 = Line[idx3]
         
-        slope2 = self.CalSlope(Line, idx2, idx3)
+        slope2 = self.CalSlope(Line, idx3, idx2)
         const2_0 = pos2[0] - slope2*pos2[1]
         const2_1 = pos3[0] - slope2*pos3[1]
         const2 = (const2_0 + const2_1) / 2
         
         idx4 = (int)(len(Line)/2)
         pos4 = Line[idx4]
+
         pos5_1 = pos4[1]
         pos5_0 = (int)(slope1*pos4[1] + const1)
+
         pos6_1 = pos4[1]
         pos6_0 = (int)(slope2*pos4[1] + const2)
 
-        if (abs(pos5_0-pos4[0]) < 10) and (abs(pos6_0-pos4[0]) < 10):
+        if (abs(pos5_0-pos4[0]) < 5) and (abs(pos6_0-pos4[0]) < 5):
             LoC = 0
-        elif (abs(pos6_0 - pos5_0) < 15):
+        elif (abs(pos5_0 - pos4[0]) >= 5) or (abs(pos6_0 - pos4[0]) >= 5):
             LoC = 1
-        elif (len(Line) <= 10):
+        else:
             LoC = 2
         
         return LoC
@@ -351,10 +419,11 @@ class FollowLine(Node):
     # we check if the point Pnt3 stay on the stragith line
     # by calculating a Pnt4 through the slope and const
     def LoCCal(self, Pnt3, slope, const):
-        y1 = Pnt3[0]
+        y1 = 0
         Pnt4 = Pnt3
-        y2 = (slope * Pnt4[1]) + const
-        diff = y1 - y2
+        y1 = (slope * Pnt4[1]) + const
+        y1 = int(y1)
+        diff = Pnt4[0] - y1
         if(abs(diff) < 2):
             LoC = 0
         else:
@@ -369,7 +438,7 @@ class FollowLine(Node):
         l = len(Line) - 1
 
         idx2 = (len(Line))/5
-        idx2 = 2 * idx2
+        idx2 = 1 * idx2
         idx2 = int(idx2)
             
         if(LoC == 2):
@@ -393,6 +462,10 @@ class FollowLine(Node):
         Pnt2 = Line[idx2]
         # print('we will calculate the tangent line with Point', Pnt1, 'and Point', Pnt2)
         slope = self.GetAngl(Pnt1, Pnt2)
+        while slope == -100:
+            idx2 = idx2 + 1
+            Pnt2 = Line[idx2]
+            slope = self.GetAngl(Pnt1, Pnt2)
         return slope
 
 
@@ -400,8 +473,10 @@ class FollowLine(Node):
     # so that we can calculate the angle by using tanh
     def GetAngl(self, Pnt1, Pnt2):
         angle = 0.0
-        opp = (int)(Pnt2[0] - Pnt1[0])
-        adj = (int)(Pnt2[1] - Pnt1[1])
+        opp = (Pnt2[0] - Pnt1[0])
+        adj = (Pnt2[1] - Pnt1[1])
+        if adj == 0:
+            return -100
         angle = np.arctan(opp / adj)
         return angle
 
@@ -414,7 +489,7 @@ class FollowLine(Node):
         for i in range(idx1, idx2, a):
         # for idx1 < idx2: Check from upper to bottom, if there is "string" points
         # for idx1 > idx2: Check from bottom to upper, if there is "string" points
-            BGR = [175, 175, 165]
+            BGR = [170, 170, 160]
             J = (self.ColDet(img, height, width, i, BGR, string1))
             U = (J[0] == -100)
             if U == True:
@@ -434,8 +509,8 @@ class FollowLine(Node):
 
         # receive data of the image 
         height, width, _ = img_cv.shape
-        i_bot = height - 5
-        i_mid = height - 40
+        i_bot = height - 2
+        i_mid = height - 30
 
         # resize the image so that we can only focus on the right bottom of the image
         out_pnt = np.float32([[0, 0],
@@ -475,16 +550,21 @@ class FollowLine(Node):
         print("time for LineForm():", end-start)
 
         self.LoC = self.LineorCurve(Line)
+        print("--------------- LoC = ", self.LoC, " --------------")
+
         slope_n = self.LineSlope(Line, self.LoC)
-        self.slope = slope_n - self.slope
-        print('LoC = ', self.LoC, '\tslope = ', self.slope)
+        print("------------- slope_n = ", slope_n, " -------------")
+        self.slope_do = slope_n - self.slope
+        print("------------ slope_do = ", self.slope_do, " ------------")
+        self.slope = slope_n
+        
 
         # publish the cv image back to publisher
 
         ''''''
         # to test if the Project will find the correct line
         # if((Line != 0)and(Line != 1)):
-        for i in range (0, len(Line)):
+        for i in range (len(Line)):
             Pnt = Line[i]
             cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
         ''''''
@@ -505,20 +585,20 @@ class FollowLine(Node):
             msg.angular.z = 0.00
             self.publisher_.publish(msg)
             print("STOP!")
-        elif(abs(self.slope) <= 0.035):
+        elif(abs(self.slope) <= 0.03):
         #call the class variable
         #since the publisher create the msg itself
         #you are not allow to use the msg in publisher
         #[ self.i < 20): ]
             msg = Twist()
-            msg.linear.x = 0.00
+            msg.linear.x = 0.01
             msg.angular.z = 0.00
             self.publisher_.publish(msg)
             print("Straight Driving!")
-        elif(abs(self.slope) > 0.035):
+        elif(abs(self.slope) > 0.03):
             msg = Twist()
-            msg.linear.x = 0.00
-            msg.angular.z = self.slope
+            msg.linear.x = 0.01
+            msg.angular.z = self.slope_do
             self.publisher_.publish(msg)
             print("Turning!")
         else: 
