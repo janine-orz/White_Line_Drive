@@ -18,13 +18,6 @@ from sensor_msgs.msg import Image
 #cv2.circle(img, (SP2[0], SP2[2]), 3, (0, 255, 0), 3)
 #cv2.circle(img, (SP2[1], SP2[2]), 3, (0, 255, 0), 3)
 
-def print_line(Line, img):
-    for k in range(len(Line)):
-        temp1 = Line[k]
-        #print('(', temp1[0], temp1[1], ')')
-        a = int(temp1[0])
-        cv2.circle(img, (a, temp1[1]), 2, (0, 0, 255), 2)
-
 
 def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     if(idx1 <= idx2):
@@ -34,10 +27,13 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     for i in range(idx1, idx2, a):
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
-        
-        BGR = [170, 170, 160]
-        J = (cd.ColDet(img, height, width, i, BGR, string1))
-        U = (J[0] == -100)
+        J = np.zeros((2), dtype = 'int')
+        BGR = [220, 220, 220]
+        J = (cd.ColDet(img, height, width, i, BGR, string1, J))
+        # if(string1 == "White"):
+        # U = (J[0] == 0)
+        # elif(string1 == "Green"):
+        U = (J[0] == 0)
         # print('i = ', i, '\tJ = ', J, '\tU = ', U, '\tcolor: ', string1)
         if U == True:
             idx1 = i
@@ -52,10 +48,8 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
 
 def DrawTangent(Line, img, slope):
     l = len(Line)
-    print("len(Line) = ", len(Line))
-    idx1 = (len(Line))/5
-    idx1 = 1 * idx1
-    idx1 = int(idx1)
+    # print("len(Line) = ", len(Line))
+    idx1 = 10
 
     Pnt0 = Line[idx1]
     cv2.circle(img, (Pnt0[0], Pnt0[1]), 2, (255, 0, 255), 5)
@@ -70,6 +64,70 @@ def DrawTangent(Line, img, slope):
         x = int(x)
         # print('[', x, ',', y, ']')
         cv2.circle(img, (x, y), 1, (0, 175, 175), 2)
+
+
+def PrintLine(Line, img):
+    rtl = 0 # from bot to top : right to left
+    ltr = 0 # from bot to top : left to right
+    D_L = []
+    D_R = []
+    # 1. check the direction on the line 
+    ltr, D_L, rtl, D_R = Chec_dir(Line, ltr, D_L, rtl, D_R)
+    
+    print("left_to_right = ", ltr, "\tright_to_left = ", rtl)
+    # 2. show the point that is out of the direction
+    if(ltr > rtl):
+        direc = "LTR"
+        diff = (sum(D_L)) / ltr
+    elif(rtl >= ltr):
+        direc = "RTL"
+        diff = (sum(D_R)) / rtl
+    
+    print("direction : ", direc)
+    # 3. correct these points
+    if(direc == "RTL"):
+        Line = Corr_Pnt(Line, rtl, ltr, diff, rtl)
+    elif(direc == "LTR"):
+        Line = Corr_Pnt(Line, rtl, ltr, diff, ltr)
+    for i in range(len(Line)):
+        Pnt = Line[i]
+        cv2.circle(img, (Pnt[0], Pnt[1]), 1, (0, 125, 225), 3)
+
+    return Line
+
+
+def Chec_dir(Line, ltr, D_L, rtl, D_R):
+    for i in range(len(Line)-1):
+        Pnt1 = Line[i]
+        Pnt2 = Line[i+1]
+        if(Pnt2[0] <= Pnt1[0]):
+            ltr = ltr + 1
+            diff = (Pnt2[0]-Pnt1[0])
+            D_L.append(diff)
+        if(Pnt2[0] >= Pnt1[0]):
+            rtl = rtl + 1
+            diff = (Pnt2[0]-Pnt1[0])
+            D_R.append(diff)
+    return ltr, D_L, rtl, D_R
+
+
+def Corr_Pnt(Line, rtl, ltr, diff, aa):
+    while(aa < 239):
+        for i in range(len(Line)-1, 1, -1):
+            Pnt1 = Line[i]
+            Pnt2 = Line[i-1]
+            if(Pnt2[0] > Pnt1[0]):
+                Pnt2[0] = Pnt1[0] + diff
+                Pnt2[0] = (int)(Pnt2[0])
+                rtl = rtl + 1
+                aa = rtl
+            elif(Pnt2[0] < Pnt1[0]):
+                Pnt2[0] = Pnt1[0] - diff
+                Pnt2[0] = (int)(Pnt2[0])
+                ltr = ltr + 1
+                aa = ltr
+    return Line
+
 
 
 def main():
@@ -98,8 +156,19 @@ def main():
                "051.png", "052.png", "053.png", "054.png", "055.png",
                 #  55         56         57         58         59
                "056.png", "057.png", "058.png", "059.png", "060.png", 
-                #  60
-               "061.png", ]
+                #  60         61         62         63         64
+               "061.png", "062.png", "063.png", "064.png", "065.png",
+                #  65         66         67         68         69
+               "066.png", "067.png", "068.png", "069.png", "070.png",  
+                #  70         71         72         73         74
+               "071.png", "072.png", "073.png", "074.png", "075.png",
+                #  75         76         77         78         79
+               "076.png", "077.png", "078.png", "079.png", "080.png", 
+                #  80         81         82         83         84
+               "081.png", "082.png", "083.png", "084.png", "085.png",
+                #  85         86         87         88         89
+               "086.png", "087.png", "088.png", "089.png", "090.png", 
+               ]
     n = len(PNGList)
     # for i in range(0, n-1):
     
@@ -108,7 +177,7 @@ def main():
     # 031.png ~ 042.png : reflection between white line and green line
 
     i = input('Please give the number of png: ')
-    i = int(i)# 19
+    i = (int(i)) - 1 # 19
     print("the amount of PNGList: ", PNGList[i])
     img_cv = cv2.imread(PNGList[i])
     # print("\timported image", i, ": ", PNGList[i], '\n')
@@ -121,14 +190,14 @@ def main():
     i_bot = height - 2
     i_mid = height - 30
 
-    out_pnt = np.float32([[0, 0],
-                        [0, height-1],
-                        [width-1, height-1],
-                        [width-1, 0]])
-    inp_pnt = np.float32([[0, i_mid], # width_n + 58
-                        [0, i_bot], # width_n + 8
-                        [width-1, i_bot], # width-1
-                        [width-1, i_mid]]) # 300
+    out_pnt = np.float32([[0,        0       ],
+                            [0,        height-1],
+                            [width-1,  height-1],
+                            [width-1,  0       ]])
+    inp_pnt = np.float32([[15,       i_mid],    # A
+                            [0,        i_bot],    # B
+                            [width-1,  i_bot],    # C
+                            [width-15, i_mid]])   # D
 
     M = cv2.getPerspectiveTransform(inp_pnt, out_pnt)
     img = cv2.warpPerspective(img_cv, M, (width, height), flags = cv2.INTER_LINEAR)
@@ -154,16 +223,15 @@ def main():
 
     start = time.time()
 
-    Line = cd.LineForm(img, height, width, "White", "Green" or "Yellow", Wminhigt, Wmaxhigt-100, Gminhigt, Gmaxhigt-100)
+    Line = cd.LineForm(img, height, width, "White", "Green" or "Yellow", Wminhigt, Wmaxhigt, Gminhigt, Gmaxhigt)
 
     end = time.time()
     print("Time for cd.LineForm() : ", end-start)
 
     # print(Line, "\tlen(Line)", len(Line))
 
-    for i in range (len(Line)):
-        Pnt = Line[i]
-        cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
+    Line = PrintLine(Line, img)
+    
     # for i in range max(Wmaxhigt, Gmaxhigt):
     #     if(np.all(Line[i][0] == -100)):
     #     print("type of Line : ", type(Line), "len(Line) = ", len(Line))
@@ -180,11 +248,12 @@ def main():
 
     LoC = cd.LineorCurve(Line, img)
     print("-------------- LoC = ", LoC, " --------------")
-    slope_act = input('Please input the actual slope: ')
-    slope_act = float(slope_act)
-    slope_new = cd.LineSlope(Line, LoC)
-    print("------------ slope_new = ", slope_new, " ------------")
-    slope_do = slope_new - slope_act
+    slope = input('Please input the actual slope: ')
+    slope = float(slope)
+    slope_n = cd.LineSlope(Line, LoC)
+    slope_do = slope_n - slope
+    slope = slope_n
+    print("------------ slope_new = ", slope_n, " ------------")
     print("------------ slope_do = ", slope_do, " ------------")
     DrawTangent(Line, img, slope_do)
 
