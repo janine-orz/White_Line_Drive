@@ -28,8 +28,9 @@ def DeterHeight1(img, height, width, idx1, idx2, string1, string2):
     # for idx1 < idx2: Check from upper to bottom, if there is "string" points
     # for idx1 > idx2: Check from bottom to upper, if there is "string" points
         J = np.zeros((2), dtype = 'int')
-        BGR = [220, 220, 220]
-        J = (cd.ColDet(img, height, width, i, BGR, string1, J))
+        BGR = [170, 170, 160]
+        HSV = [100, 100]
+        J = (cd.ColDet(img, height, width, i, BGR, HSV, string1, J))
         # if(string1 == "White"):
         # U = (J[0] == 0)
         # elif(string1 == "Green"):
@@ -187,17 +188,19 @@ def main():
     print('height = ', height)
     print('width = ', width)
 
-    i_bot = height - 2
-    i_mid = height - 30
+    i_bot = height - 1
+    i_mid = height - 20
 
     out_pnt = np.float32([[0,        0       ],
-                            [0,        height-1],
-                            [width-1,  height-1],
-                            [width-1,  0       ]])
-    inp_pnt = np.float32([[15,       i_mid],    # A
-                            [0,        i_bot],    # B
-                            [width-1,  i_bot],    # C
-                            [width-15, i_mid]])   # D
+                          [0,        height-1],
+                          [width-1,  height-1],
+                          [width-1,  0       ]])
+    inp_pnt = np.float32([[15,       i_mid],    # A         10 -> slope:0.02192631009880022
+                                                #           20 -> slope:0.035073330533225366
+                          [0,        i_bot],    # B
+                          [width-4,  i_bot],    # C
+                          [width-20, i_mid]])   # D     wid-40 -> slope:0.03507333053322537
+                                                #       wid-20 -> slope:0.10969010348702159
 
     M = cv2.getPerspectiveTransform(inp_pnt, out_pnt)
     img = cv2.warpPerspective(img_cv, M, (width, height), flags = cv2.INTER_LINEAR)
@@ -230,32 +233,41 @@ def main():
 
     # print(Line, "\tlen(Line)", len(Line))
 
-    Line = PrintLine(Line, img)
+    # Line = PrintLine(Line, img)
     
     # for i in range max(Wmaxhigt, Gmaxhigt):
-    #     if(np.all(Line[i][0] == -100)):
-    #     print("type of Line : ", type(Line), "len(Line) = ", len(Line))
-    #     for i in range(len(Line)):
-    #         Pnt = Line[i]
-    #         # Pnt1 = WLine[i]
-    #         # Pnt2 = GLine[i]
-    #         print('i = ', i, '; Pos = ', Pnt)
-    #         cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
+        # if(np.all(Line[i][0] == -100)):
+        # print("type of Line : ", type(Line), "len(Line) = ", len(Line))
+    for i in range(len(Line)):
+        Pnt = Line[i]
+        # Pnt1 = WLine[i]
+        # Pnt2 = GLine[i]
+        print(Pnt)
+        cv2.circle(img, (Pnt[0], Pnt[1]), 1, (255, 0, 0), 3)
             # cv2.circle(img, (101, 238), 5, (255, 255, 0), 1)
             # cv2.circle(img, (99, 179), 5, (255, 255, 0), 1)
             # cv2.circle(img, (Pnt1[0], Pnt1[1]), 1, (125, 255, 0), 3)
             # cv2.circle(img, (Pnt2[0], Pnt2[1]), 1, (0, 175, 175), 3)
 
-    LoC = cd.LineorCurve(Line, img)
+    LoC = cd.LineorCurve(Line, width, img)
     print("-------------- LoC = ", LoC, " --------------")
-    slope = input('Please input the actual slope: ')
-    slope = float(slope)
-    slope_n = cd.LineSlope(Line, LoC)
-    slope_do = slope_n - slope
-    slope = slope_n
-    print("------------ slope_new = ", slope_n, " ------------")
-    print("------------ slope_do = ", slope_do, " ------------")
-    DrawTangent(Line, img, slope_do)
+    
+    slope = 0.00
+    slope_n = cd.LineSlope(Line, width, LoC)
+    slope_do = slope_n
+    
+    #########################
+    # Fix the slope problem #
+    #########################
+
+    # if(slope_n > 0.03):
+    #     slope = slope_n - 0.0078
+    # elif(slope_n < -0.01):
+    #     slope = slope_n + 0.0052
+    DrawTangent(Line, img, slope)
+    print("-------------  slope_n = %.2f", slope_n, "  -------------")
+    print("------------- slope_do = %.2f", slope_do, "  -------------")
+    print("-------------    slope = %.2f", slope, "  -------------")
 
     # LoC = cd.LineorCurve(Line)
     # print('LoC = ' , LoC)
