@@ -12,7 +12,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 '''
 DONE:
-    -   it goes well except if the road divide
+    -   it goes well
 TO DO:
     +   fill all the commands!!!
     +   do some notes and write down why
@@ -31,7 +31,6 @@ class FollowLine(Node):
         self.subscription = self.create_subscription(CompressedImage, '/image_raw/compressed', self.listener_callback, qos_profile = qos_policy)
     
         self.bridge = CvBridge()
-        # self.subscription = self.create_subscription(LaserScan, 'scan', self.listener_callback, qos_profile=qos_policy)
 
         self.subscription  # prevent unused variable warning
 
@@ -121,10 +120,7 @@ class FollowLine(Node):
         # "Green": it should the line on the left side
         elif(string == 'Green'):
             # initialize temp
-                #########################
-                # change to temp = -100 #
-                #########################
-            temp = 0 
+            temp = -100 
 
             # limit to find green color on the left side of the graph
             for j in range(0, 140, 1):
@@ -383,7 +379,6 @@ class FollowLine(Node):
                 else:
                     x_temp = L1[0] - diff
                 temp = [x_temp, h]
-                print(temp)
                 if(h == i_min):
                     WL = np.delete(WL, 0, 0)
                     L = np.delete(L, 0, 0)
@@ -456,14 +451,16 @@ class FollowLine(Node):
 
 
     def BottomLine(self, img, height, width, BGR, L, L1, L2, WL, GL, string1, string2, i_min, i_max, Gi_min, Gi_max, Wi_min, Wi_max, diff):
-        # The lower bound of Whiteline is smaller then the Greenline
-        if(Wi_max < Gi_min): # ???????????????????? if it is necessary ??????????????????
+        # The lower bound of Whiteline is smaller then the upper bound of Greenline
+        if(Wi_max < Gi_min): 
             Wi_max = Gi_max
             i_max = Gi_max
             if(Gi_max == 239):
                 Wi_max = 238
                 i_max = 238
             i_min = Gi_min
+        
+        # The lower bound of Greenline is smaller then the Whiteline
         if(i_max == Gi_max) and (Gi_max != 239): 
             # from top to bottom
             for h in range (Gi_max, Wi_max):
@@ -489,6 +486,7 @@ class FollowLine(Node):
                 # ▅ ▅ ▅ ▅ ▅ ▅ ... ▅ ▅ ▅ ▅ ▅ ▅ ❑ 
                 L = np.vstack((L, temp))
 
+        # The lower bound of Whiteline is smaller then the Greenline
         elif(i_max == Wi_max) and (Wi_max != 239):
             for h in range (Wi_max, Gi_max):
                 L2[0] = -100
@@ -534,13 +532,12 @@ class FollowLine(Node):
         idx2 = 10
         l = len(Line) - 1
 
-            
-        # if(LoC == 2):
-        # # if the robot cannot find a line
-        # # then it will give the value of LoC
-        # # so that the robot will not give back an Error
-        #     slope = 0.0
-        #     return slope
+        # if the robot cannot find a line
+        # then it will give the value of LoC
+        # so that the robot will not give back an Error
+        if (len(Line) == 1):
+            slope = 100
+            return slope
         
         # if the line is a straight line or a curve line
         # then we need to find three different pairs of points
@@ -577,6 +574,7 @@ class FollowLine(Node):
         return angle
 
 
+    # We use this function to find the highest and lowest index of both white and green line
     def DeterHeight1(self, img, height, width, idx1, idx2, string1, string2):
         if(idx1 <= idx2):
             a = 1
@@ -600,6 +598,7 @@ class FollowLine(Node):
                 return i
 
 
+    # We use this function to draw the straight line that the robot should follow
     def DrawTangent(self, Line, img, slope):
         l = len(Line)
         idx1 = 10
@@ -611,11 +610,9 @@ class FollowLine(Node):
         const = Pnt1[0] - (Pnt1[1] * slope)
         for i in range(1, (l - idx1), 1):
             Pnt = Line[l-i]
-            # print(Pnt)
             y = Pnt[1]
             x = Pnt[1]*slope + const
             x = int(x)
-            # print('[', x, ',', y, ']')
             cv2.circle(img, (x, y), 1, (0, 175, 175), 2)
 
 
@@ -634,12 +631,10 @@ class FollowLine(Node):
                               [0,        height-1],
                               [width-1,  height-1],
                               [width-1,  0       ]])
-        inp_pnt = np.float32([[13,       i_mid],    # A         10 -> slope:0.02192631009880022
-                                                    #           20 -> slope:0.035073330533225366
+        inp_pnt = np.float32([[14,       i_mid],    # A
                               [0,        i_bot],    # B
                               [width-4,  i_bot],    # C
-                              [width-23, i_mid]])   # D     wid-40 -> slope:0.03507333053322537
-                                                    #       wid-20 -> slope:0.10969010348702159
+                              [width-22, i_mid]])   # D
 
         M = cv2.getPerspectiveTransform(inp_pnt, out_pnt)
         img = cv2.warpPerspective(img_cv, M, (width, height), flags = cv2.INTER_LINEAR)
@@ -657,8 +652,6 @@ class FollowLine(Node):
         elif(Gminhigt == Gmaxhigt):
             Gminhigt = Wminhigt
             Gmaxhigt = Wminhigt
-        print("Wminhigt = ", Wminhigt, "\t\tGminhigt = ", Gminhigt)
-        print("Wmaxhigt = ", Wmaxhigt, "\t\tGmaxhigt = ", Gmaxhigt)
         
         start = time.time()
 
@@ -669,28 +662,15 @@ class FollowLine(Node):
         print("time for LineForm():", end-start)
 
         slope_n = self.LineSlope(Line, width, height)
+        if(slope_n == 100):
+            self.LoC = 2
         self.slope = slope_n
-        
-        #########################
-        # Fix the slope problem #
-        #########################
 
         self.DrawTangent(Line, img, self.slope)
         print("------------- slope_n = ", slope_n, "-------------")
         print("-------------slope = ", self.slope, " -------------")
-        
-        
-        #####################################################################
-        # if we calculate the slope through two point                       #
-        # the upper Point is the last Point or the middle Point of the Line #
-        # the lower Point is the middle Point of the Image                  #
-        ##################################################################### 
-
 
         # to show the cv image
-        # img_hsv = cv2.cvtColor(img_cv, cv2.COLOR_BGR2HSV)
-        # cv2.imshow("IMG_HSV", img_hsv)
-        # cv2.imshow("IMG_CV", img_cv)
         cv2.imshow("IMG", img)
         cv2.waitKey(1)
 
