@@ -18,6 +18,9 @@ TO DO:
     +   do some notes and write down why
 
     17.30  2023-08-09 <- 1st Problem that I need to ask
+    +   maybe change the speed to a input value?
+    +   maybe change the BGR to a input value?
+    +   maybe the choice of line color should also be a input variable?
 '''
 
 class FollowLine(Node):
@@ -549,9 +552,11 @@ class FollowLine(Node):
     # This function is used to calculate the slope of
     # a straight linebetween two points
     def CalSlope(self, Line, width, height, idx1, idx2):
-        num0 = width  / 2
+        num0 = (width  / 2) - 1
         num1 = height - 1
         Pnt1 = np.array([num0, num1], dtype = 'int') # height of Pnt1 should be lower as the one of Pnt2
+        print("dix2 = ", idx2, "len(LIne) = ", len(Line))
+        # while len(Line) < idx2:
         Pnt2 = Line[idx2]
         slope = self.GetAngl(Pnt1, Pnt2)
         while slope == -100:
@@ -585,7 +590,7 @@ class FollowLine(Node):
         # for idx1 > idx2: Check from bottom to upper, if there is "string" points
             J = np.zeros((2), dtype = 'int')
             J[0] = -100
-            BGR = [170, 170, 170]
+            BGR = [150, 140, 130]
             J = (self.ColDet(img, height, width, i, BGR, string1, J))
             U = (J[0] == -100)
             if U == True:
@@ -600,18 +605,17 @@ class FollowLine(Node):
 
     # We use this function to draw the straight line that the robot should follow
     def DrawTangent(self, Line, img, slope):
-        l = len(Line)
+        l = 238
         idx1 = 10
-
+        print("len(Line) = ", l, "idx1 = ", idx1)
         Pnt0 = Line[idx1]
         cv2.circle(img, (Pnt0[0], Pnt0[1]), 2, (255, 0, 255), 5)
-        Pnt1 = [160, 319]
+        Pnt1 = [160, 238]
         cv2.circle(img, (Pnt1[0], Pnt1[1]), 2, (255, 0, 255), 5)
         const = Pnt1[0] - (Pnt1[1] * slope)
         for i in range(1, (l - idx1), 1):
-            Pnt = Line[l-i]
-            y = Pnt[1]
-            x = Pnt[1]*slope + const
+            y = l - i
+            x = y*slope + const
             x = int(x)
             cv2.circle(img, (x, y), 1, (0, 175, 175), 2)
 
@@ -652,7 +656,7 @@ class FollowLine(Node):
         elif(Gminhigt == Gmaxhigt):
             Gminhigt = Wminhigt
             Gmaxhigt = Wminhigt
-        
+
         start = time.time()
 
         # find the action path
@@ -689,13 +693,13 @@ class FollowLine(Node):
         #you are not allow to use the msg in publisher
         #[ self.i < 20): ]
             msg = Twist()
-            msg.linear.x = 0.015
+            msg.linear.x = 0.019  # 0.15-0.19
             msg.angular.z = 0.00
             self.publisher_.publish(msg)
             print("Straight Driving!")
         elif(self.slope > 0.035 or self.slope < 0.00):
             msg = Twist()
-            msg.linear.x = 0.015
+            msg.linear.x = 0.019
             msg.angular.z = self.slope
             self.publisher_.publish(msg)
             print("Turning!")
